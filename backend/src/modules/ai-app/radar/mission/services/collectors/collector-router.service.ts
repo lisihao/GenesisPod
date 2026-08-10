@@ -5,6 +5,8 @@ import { RssCollector } from "./rss-collector.service";
 import { YoutubeCollector } from "./youtube-collector.service";
 import { XCollector } from "./x-collector.service";
 import { CustomCollector } from "./custom-collector.service";
+import { GithubCollector } from "./github-collector.service";
+import { HuggingFaceCollector } from "./hugging-face-collector.service";
 
 export interface CollectResult {
   sourceId: string;
@@ -31,12 +33,16 @@ export class CollectorRouter {
     yt: YoutubeCollector,
     x: XCollector,
     custom: CustomCollector,
+    github: GithubCollector,
+    huggingFace: HuggingFaceCollector,
   ) {
     this.registry = new Map<RadarSourceType, ICollector>([
       ["RSS", rss],
       ["YOUTUBE", yt],
       ["X", x],
       ["CUSTOM", custom],
+      ["GITHUB", github],
+      ["HUGGING_FACE", huggingFace],
     ]);
   }
 

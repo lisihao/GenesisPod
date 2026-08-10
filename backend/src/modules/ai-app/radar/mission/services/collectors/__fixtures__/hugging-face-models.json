@@ -1,0 +1,16 @@
+[
+  {
+    "_id": "fixture-model-id",
+    "id": "genesispod/research-model",
+    "modelId": "genesispod/research-model",
+    "author": "genesispod",
+    "pipeline_tag": "text-generation",
+    "library_name": "transformers",
+    "tags": ["transformers", "research"],
+    "downloads": 12000,
+    "likes": 320,
+    "trendingScore": 88,
+    "createdAt": "2026-08-01T00:00:00Z",
+    "lastModified": "2026-08-09T10:00:00Z"
+  }
+]

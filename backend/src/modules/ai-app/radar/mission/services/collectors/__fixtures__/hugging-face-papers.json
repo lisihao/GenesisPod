@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Native Evidence Pipelines",
+    "summary": "A fixture paper used to verify evidence linkage.",
+    "publishedAt": "2026-08-09T08:00:00Z",
+    "numComments": 7,
+    "paper": {
+      "id": "2608.00001",
+      "title": "Native Evidence Pipelines",
+      "summary": "A fixture paper used to verify evidence linkage.",
+      "authors": [{"name": "Ada Example"}],
+      "publishedAt": "2026-08-09T08:00:00Z",
+      "upvotes": 54,
+      "githubRepo": "https://github.com/example/evidence",
+      "githubStars": 900,
+      "projectPage": "https://example.org/evidence"
+    }
+  }
+]

@@ -78,4 +78,16 @@ describe("BulkCreateRadarSourcesDto", () => {
     });
     expect(errs).toEqual([]);
   });
+
+  it.each(["GITHUB", "HUGGING_FACE"])(
+    "accepts native typed source %s",
+    async (type) => {
+      const errs = await validateBulk({
+        sources: [
+          { type, identifier: type === "GITHUB" ? "trending" : "papers" },
+        ],
+      });
+      expect(errs).toEqual([]);
+    },
+  );
 });

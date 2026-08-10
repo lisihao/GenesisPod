@@ -28,6 +28,7 @@ import { SkillLoaderService } from "@/modules/ai-engine/facade";
 import { NotificationModule } from "../../../platform/notifications/notification.module";
 import { NotificationDispatcherModule } from "../../../platform/notifications/dispatcher/notification-dispatcher.module";
 import { MonitoringModule } from "../../../platform/monitoring/monitoring.module";
+import { ContentFetchModule } from "../../../ai-engine/content/fetch/content-fetch.module";
 
 import { RadarTopicController } from "../api/controller/radar-topic.controller";
 import { RadarSourceController } from "../api/controller/radar-source.controller";
@@ -53,6 +54,8 @@ import { RssCollector } from "../mission/services/collectors/rss-collector.servi
 import { YoutubeCollector } from "../mission/services/collectors/youtube-collector.service";
 import { XCollector } from "../mission/services/collectors/x-collector.service";
 import { CustomCollector } from "../mission/services/collectors/custom-collector.service";
+import { GithubCollector } from "../mission/services/collectors/github-collector.service";
+import { HuggingFaceCollector } from "../mission/services/collectors/hugging-face-collector.service";
 
 import { RadarRefreshScheduler } from "../mission/services/scheduler/radar-refresh.scheduler";
 import { RadarBriefingQueueService } from "../mission/services/scheduler/radar-briefing-queue.service";
@@ -120,6 +123,7 @@ import { RadarSignalSearchTool } from "../integrations/radar-signal-search.tool"
     NotificationModule,
     NotificationDispatcherModule,
     MonitoringModule,
+    ContentFetchModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -158,6 +162,8 @@ import { RadarSignalSearchTool } from "../integrations/radar-signal-search.tool"
     YoutubeCollector,
     XCollector,
     CustomCollector,
+    GithubCollector,
+    HuggingFaceCollector,
     // 调度（走 dispatcher.runRefreshMission + briefing sweep + BullMQ processor）
     RadarRefreshScheduler,
     RadarBriefingQueueService,

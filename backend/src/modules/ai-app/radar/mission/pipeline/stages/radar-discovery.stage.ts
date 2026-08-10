@@ -9,7 +9,7 @@
  * 单次 LLM 调用，输出 source 候选列表：
  *   { candidates: [{type, identifier, label?, rationale?, confidence?}] }
  *
- * type 限定：X / YOUTUBE / RSS / CUSTOM
+ * type 限定：YOUTUBE / GITHUB / HUGGING_FACE / RSS / CUSTOM
  * 结果通过 stage output 返回，不写库。
  * controller 负责后续让用户勾选入库（走 RadarSourceService）。
  */
@@ -32,7 +32,7 @@ import type { RunRadarDiscoveryMissionInput } from "../../../api/dto/run-radar-r
  * 手动添加仍走 RadarSourceType enum，但 LLM/discovery 链路单源 = 这 3 类）。
  */
 export interface RadarSourceCandidate {
-  type: "YOUTUBE" | "RSS" | "CUSTOM";
+  type: "YOUTUBE" | "GITHUB" | "HUGGING_FACE" | "RSS" | "CUSTOM";
   identifier: string;
   label?: string;
   rationale?: string;
@@ -63,6 +63,8 @@ export interface RadarDiscoveryOutput {
 // 走 URL 校验，进一步把异常输入挡在 bulkCreate 之前。
 const RECOMMENDABLE_TYPES = new Set<RadarSourceCandidate["type"]>([
   "YOUTUBE",
+  "GITHUB",
+  "HUGGING_FACE",
   "RSS",
   "CUSTOM",
 ]);
@@ -169,7 +171,7 @@ ${JSON.stringify({
 - **YOUTUBE @handle 解析失败率高**（YouTube 反爬）：能给 channelId 一定给 channelId，给不出 channelId 时 confidence 标 0.5 表示风险
 
 推荐要求：
-- type **只能 3 种**：YOUTUBE（频道）/ RSS（官博/媒体/Substack/Newsletter）/ CUSTOM（列表页 + selector）
+- type **只能 5 种**：YOUTUBE（频道）/ GITHUB（仓库趋势）/ HUGGING_FACE（模型或论文）/ RSS（官博/媒体/Substack/Newsletter）/ CUSTOM（列表页 + selector）
 - **绝对不输出 type=X / Twitter**（Nitter 全死 + 业界 Feedly/Inoreader 已淡化 X）
 - KOL 主题（如 "Elon Musk" / "Sam Altman"）按优先级找等价一手源：
   1. 本人 Substack / 个人 blog RSS / 本人主讲 YouTube
@@ -184,6 +186,8 @@ ${JSON.stringify({
   - YOUTUBE: 首选 24 位 channelId (UC 开头)；次选 \`https://www.youtube.com/channel/UC...\` 完整 URL；可接 \`https://www.youtube.com/@handle\` 但 confidence 降 0.5；**禁裸 @handle**
   - RSS: 必须是你**已知存在**且 2024+ 仍在维护的完整 https URL；不确定就别推
   - CUSTOM: 列表页完整 https URL，**必须**附 config.listSelector
+  - GITHUB: \`trending\`、\`owner/repo\` 或 GitHub repository search 查询（不要 URL）
+  - HUGGING_FACE: \`models\`、\`papers\`、\`models:<query>\` 或 \`papers:<query>\`
 - 不推 paywall / 401 / 已停 feed（SeekingAlpha Premium / WSJ / Bloomberg / Reuters 公开 feed）
 - confidence 0-1 浮点（推荐把握度）；CUSTOM 缺 selector / YT 仅 @handle 时 ≤0.6
 
@@ -191,7 +195,7 @@ ${JSON.stringify({
 {
   "candidates": [
     {
-      "type": "YOUTUBE|RSS|CUSTOM",
+      "type": "YOUTUBE|GITHUB|HUGGING_FACE|RSS|CUSTOM",
       "identifier": "URL 或 channelId",
       "label": "来源名称",
       "rationale": "≤80 字推荐理由",
@@ -200,7 +204,7 @@ ${JSON.stringify({
     }
   ]
 }
-- config 字段：CUSTOM 必填 listSelector；YOUTUBE/RSS 可省略整个 config 字段。`;
+- config 字段：CUSTOM 必填 listSelector；GITHUB 可给 language/minStars/sort；其他类型可省略。`;
 
     try {
       const result = await this.chat.chat({

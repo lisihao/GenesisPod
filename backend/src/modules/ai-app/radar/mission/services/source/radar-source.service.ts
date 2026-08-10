@@ -362,6 +362,29 @@ export class RadarSourceService {
           );
         }
         break;
+      case "GITHUB":
+        if (
+          identifier.length > 500 ||
+          /[\u0000-\u001F\u007F]/.test(identifier) ||
+          identifier.startsWith("http://") ||
+          identifier.startsWith("https://")
+        ) {
+          throw new BadRequestException(
+            "GitHub 数据源 identifier 必须是 trending、owner/repo 或仓库搜索查询，不接受 URL",
+          );
+        }
+        break;
+      case "HUGGING_FACE":
+        if (
+          !/^(?:models|papers)(?::[^\u0000-\u001F\u007F]{1,493})?$/.test(
+            identifier,
+          )
+        ) {
+          throw new BadRequestException(
+            "Hugging Face identifier 必须是 models、papers、models:<query> 或 papers:<query>",
+          );
+        }
+        break;
       case "RSS":
       case "CUSTOM":
         try {

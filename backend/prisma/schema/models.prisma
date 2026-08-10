@@ -3389,12 +3389,12 @@ model SimulationScenario {
   id          String            @id @default(uuid())
   visibility  ContentVisibility @default(PRIVATE)
   name        String            @db.VarChar(200)
-  industry    String  @db.VarChar(100)
-  region      String? @db.VarChar(100)
+  industry    String            @db.VarChar(100)
+  region      String?           @db.VarChar(100)
   goals       Json?
   constraints Json?
   dataSources Json?
-  createdById String? @db.VarChar(36)
+  createdById String?           @db.VarChar(36)
 
   companies SimulationCompany[]
   agents    SimulationAgent[]
@@ -8199,41 +8199,41 @@ enum AuthRequestStatus {
 
 /// 用户自有 API Key（BYOK 自用模式；2026-05-29 W4b 捐赠池已退役）
 model UserApiKey {
-  id                 String         @id @default(cuid())
-  userId             String         @map("user_id")
-  provider           String         @db.VarChar(50) // openai, anthropic, deepseek, google 等
+  id               String         @id @default(cuid())
+  userId           String         @map("user_id")
+  provider         String         @db.VarChar(50) // openai, anthropic, deepseek, google 等
   /// PR-2 (2026-05-05): 多 key 支持。同一 user + provider 可有多条，用 label 区分
   /// （"default" / "personal-org-a" / "backup" / "dev-vs-prod"）。
   /// keyResolver 选择优先级：preferred(label="default") → label asc → first active
-  label              String         @default("default") @db.VarChar(50)
-  encryptedValue     String         @map("encrypted_value") @db.Text
-  iv                 String         @db.VarChar(32)
-  keyHint            String?        @map("key_hint") @db.VarChar(20) // 脱敏提示如 "sk-...3f8a"
-  keyVersion         Int            @default(1) @map("key_version")
+  label            String         @default("default") @db.VarChar(50)
+  encryptedValue   String         @map("encrypted_value") @db.Text
+  iv               String         @db.VarChar(32)
+  keyHint          String?        @map("key_hint") @db.VarChar(20) // 脱敏提示如 "sk-...3f8a"
+  keyVersion       Int            @default(1) @map("key_version")
   /// 2026-05-28 PR-2 信封加密 v2 列（dual-read）：enc_version=1=legacy CBC，2=GCM/envelope
-  authTag            String?        @map("auth_tag") @db.VarChar(32)
-  wrappedDek         String?        @map("wrapped_dek") @db.Text
-  encVersion         Int            @default(1) @map("enc_version")
-  kekVersion         Int            @default(1) @map("kek_version")
+  authTag          String?        @map("auth_tag") @db.VarChar(32)
+  wrappedDek       String?        @map("wrapped_dek") @db.Text
+  encVersion       Int            @default(1) @map("enc_version")
+  kekVersion       Int            @default(1) @map("kek_version")
   /// 2026-05-29 W4b：捐赠池退役后恒为 PERSONAL（UserApiKeyMode 已收敛为单值）。
-  mode               UserApiKeyMode @default(PERSONAL)
-  apiEndpoint        String?        @map("api_endpoint") @db.Text
-  preferredModelId   String?        @map("preferred_model_id") @db.VarChar(200)
-  isActive           Boolean        @default(true) @map("is_active")
-  testStatus         String?        @map("test_status") @db.VarChar(20) // success | failed
+  mode             UserApiKeyMode @default(PERSONAL)
+  apiEndpoint      String?        @map("api_endpoint") @db.Text
+  preferredModelId String?        @map("preferred_model_id") @db.VarChar(200)
+  isActive         Boolean        @default(true) @map("is_active")
+  testStatus       String?        @map("test_status") @db.VarChar(20) // success | failed
   /// ★ 2026-05-06: 归一化错误码（与 SecretKey 对齐）
   /// 401 / 403 / 429 / 5xx / network / timeout / decryption_failed / null（成功）
-  lastErrorCode      String?        @map("last_error_code") @db.VarChar(40)
-  lastErrorMessage   String?        @map("last_error_message") @db.Text
+  lastErrorCode    String?        @map("last_error_code") @db.VarChar(40)
+  lastErrorMessage String?        @map("last_error_message") @db.Text
   /// 调用次数统计：捐赠模式 + 个人模式都累加（业务流量调用上游成功时 +1）
   /// ★ 2026-05-06: 之前仅捐赠模式累加；现 KeyChain.reportSuccess 持久化扩展至 personal
-  usageCount         Int            @default(0) @map("usage_count")
+  usageCount       Int            @default(0) @map("usage_count")
   /// ★ 2026-05-12: 真实业务调用时间。已归一字段，业务流量 + 手动 Test 都写入此列
   /// (前 last_tested_at 列在 migration 20260512a 中 drop).
   /// 写入路径：persistDbHealthOutcome (personal 分支) success/failure 都更新.
-  lastUsedAt         DateTime?      @map("last_used_at")
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  lastUsedAt       DateTime?      @map("last_used_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -8290,9 +8290,9 @@ model Secret {
   description String?        @db.Text
 
   // ★ 加密存储 (enc_version=1: AES-256-CBC; 2: AES-256-GCM 信封)
-  encryptedValue String @map("encrypted_value") @db.Text // 密文
-  iv             String @db.VarChar(32) // 初始化向量 (hex)
-  keyVersion     Int    @default(1) @map("key_version") // 加密密钥版本号，用于密钥轮转
+  encryptedValue String  @map("encrypted_value") @db.Text // 密文
+  iv             String  @db.VarChar(32) // 初始化向量 (hex)
+  keyVersion     Int     @default(1) @map("key_version") // 加密密钥版本号，用于密钥轮转
   // 2026-05-28 PR-2 信封加密 v2 列（dual-read）
   authTag        String? @map("auth_tag") @db.VarChar(32)
   wrappedDek     String? @map("wrapped_dek") @db.Text
@@ -8362,9 +8362,9 @@ model SecretKey {
   label String @db.VarChar(100)
 
   /// 加密存储 (enc_version=1: AES-256-CBC; 2: AES-256-GCM 信封)
-  encryptedValue String @map("encrypted_value") @db.Text
-  iv             String @db.VarChar(32)
-  keyVersion     Int    @default(1) @map("key_version")
+  encryptedValue String  @map("encrypted_value") @db.Text
+  iv             String  @db.VarChar(32)
+  keyVersion     Int     @default(1) @map("key_version")
   /// 2026-05-28 PR-2 信封加密 v2 列（dual-read）
   authTag        String? @map("auth_tag") @db.VarChar(32)
   wrappedDek     String? @map("wrapped_dek") @db.Text
@@ -8425,15 +8425,15 @@ model SecretVersion {
   version  Int // 版本号: 1, 2, 3...
 
   // 加密存储 (enc_version=1: AES-256-CBC; 2: AES-256-GCM 信封)
-  encryptedValue String @map("encrypted_value") @db.Text
-  iv             String @db.VarChar(32)
-  keyVersion     Int    @default(1) @map("key_version")
+  encryptedValue String  @map("encrypted_value") @db.Text
+  iv             String  @db.VarChar(32)
+  keyVersion     Int     @default(1) @map("key_version")
   // 2026-05-28 PR-2 信封加密 v2 列（dual-read）
   authTag        String? @map("auth_tag") @db.VarChar(32)
   wrappedDek     String? @map("wrapped_dek") @db.Text
   encVersion     Int     @default(1) @map("enc_version")
   kekVersion     Int     @default(1) @map("kek_version")
-  checksum       String @db.VarChar(64) // SHA-256 用于完整性校验
+  checksum       String  @db.VarChar(64) // SHA-256 用于完整性校验
 
   // 审计字段
   createdBy String?  @map("created_by") @db.VarChar(100)
@@ -8505,14 +8505,14 @@ model SecretAccessLog {
 /// 用户向系统申请授权（Key 配额 / 模型 / 工具 / 技能）。
 /// admin 在 /admin/access/authorization-requests 审批；批准后生成 AuthorizationGrant。
 model AuthorizationRequest {
-  id     String            @id @default(cuid())
-  userId String            @map("user_id")
-  type   AuthRequestType
+  id       String            @id @default(cuid())
+  userId   String            @map("user_id")
+  type     AuthRequestType
   /// 申请目标标识：secretName / modelId / toolId / skillId（按 type 解释）
-  targetId String          @map("target_id") @db.VarChar(200)
+  targetId String            @map("target_id") @db.VarChar(200)
   /// 仅 KEY_ASSIGNMENT 申请用：申请的 Key 类别（SecretCategory 值，admin 审批识别）；其余 type 为空
-  category String?         @db.VarChar(50)
-  reason   String?         @db.Text // 用户填写的申请理由
+  category String?           @db.VarChar(50)
+  reason   String?           @db.Text // 用户填写的申请理由
   status   AuthRequestStatus @default(PENDING)
 
   // 审批信息
@@ -8534,10 +8534,10 @@ model AuthorizationRequest {
 
 /// 已生效的授权（来源工单或 admin 手动赋权）。运行时 resolver 据此让用户走系统资源。
 model AuthorizationGrant {
-  id     String          @id @default(cuid())
-  userId String          @map("user_id")
-  type   AuthRequestType
-  targetId String        @map("target_id") @db.VarChar(200)
+  id       String          @id @default(cuid())
+  userId   String          @map("user_id")
+  type     AuthRequestType
+  targetId String          @map("target_id") @db.VarChar(200)
 
   /// 来源工单（手动赋权时为空）
   requestId String? @unique @map("request_id")
@@ -9044,21 +9044,21 @@ model SocialMission {
   maxCredits    Int           @default(20) @map("max_credits")
 
   /// 状态
-  status      String    @db.VarChar(20) // running / completed / failed / aborted
-  startedAt   DateTime  @default(now()) @map("started_at")
-  completedAt DateTime? @map("completed_at")
+  status            String    @db.VarChar(20) // running / completed / failed / aborted
+  startedAt         DateTime  @default(now()) @map("started_at")
+  completedAt       DateTime? @map("completed_at")
   /// ★ C4/G5：mission 实测耗时。原名 wallTimeMs 与「配置上限」二义→改 elapsedWallTimeMs。
-  elapsedWallTimeMs Int? @map("elapsed_wall_time_ms")
+  elapsedWallTimeMs Int?      @map("elapsed_wall_time_ms")
 
   /// 完成时填充
-  tokensUsed   BigInt? @map("tokens_used")
-  costUsd      Float?  @map("cost_usd")
-  errorMessage String? @map("error_message") @db.Text
+  tokensUsed     BigInt? @map("tokens_used")
+  costUsd        Float?  @map("cost_usd")
+  errorMessage   String? @map("error_message") @db.Text
   /// ★ C2/G3：mission 级 canonical failure code（MissionFailureCode）。category 不落库——
   /// 读路径由 codeToCategory(failureCode) 实时派生（投影非事实源）。历史行 NULL → 前端回退 errorMessage。
-  failureCode  String? @map("failure_code") @db.VarChar(40)
+  failureCode    String? @map("failure_code") @db.VarChar(40)
   /// ★ C5/G7（三 app 统一）：typed MissionConfigSnapshot,openSession 冻结的 canonical 配置记录。
-  configSnapshot Json? @map("config_snapshot")
+  configSnapshot Json?   @map("config_snapshot")
 
   /// trajectory（S11 持久化 stage outputs：probeResults / platformVersions /
   /// covers / composed / published / verified / leaderSignOff 等）。
@@ -9991,17 +9991,17 @@ model AgentPlaygroundMission {
   maxCredits Int    @map("max_credits")
 
   /// 状态
-  status      String    @db.VarChar(20) // running / completed / failed / rejected
-  startedAt   DateTime  @default(now()) @map("started_at")
-  completedAt DateTime? @map("completed_at")
+  status            String    @db.VarChar(20) // running / completed / failed / rejected
+  startedAt         DateTime  @default(now()) @map("started_at")
+  completedAt       DateTime? @map("completed_at")
   /// ★ 2026-06-11 同-id 续跑/重跑版本号：每次 markReopened（failed/quality-failed/
   ///   cancelled → running）自增 1。重跑/重启续跑不再新建 mission 行，而是原地 bump
   ///   此版本号（78/79 诉求："在原来的任务上更新，无非增加一个版本"）。UI 可显示"第 N 次运行"。
-  runCount    Int       @default(1) @map("run_count")
+  runCount          Int       @default(1) @map("run_count")
   /// ★ C4/G5：实测耗时（mission 结束时 Date.now()-t0 写入）。原名 wallTimeMs 与配置上限
   ///   (userProfile.wallTimeMs / DEPTH_BUDGET_TIERS) 同名两义 → 改 elapsedWallTimeMs 消二义。
   ///   配置上限仍在 input/userProfile（cap 概念，本列只读实测）。
-  elapsedWallTimeMs Int? @map("elapsed_wall_time_ms")
+  elapsedWallTimeMs Int?      @map("elapsed_wall_time_ms")
 
   /// 完成时填充
   finalScore       Int?    @map("final_score")
@@ -10061,14 +10061,14 @@ model AgentPlaygroundMission {
   outlinePlanSize   Int?    @map("outline_plan_size")
 
   /// Leader 对话历史（点击 Leader 节点弹出聊天框）
-  leaderChats     AgentPlaygroundLeaderChat[]
+  leaderChats       AgentPlaygroundLeaderChat[]
   /// ★ P0-D 完整版 (2026-05-06): trajectory 持久化关系
-  researchResults AgentPlaygroundResearchResult[]
-  chapterDrafts   AgentPlaygroundChapterDraft[]
+  researchResults   AgentPlaygroundResearchResult[]
+  chapterDrafts     AgentPlaygroundChapterDraft[]
   /// ★ 报告版本化（rerun 产生新版本而不覆盖旧版本）
-  reportVersions  MissionReportVersion[]
+  reportVersions    MissionReportVersion[]
   /// ★ PR-R0 (per-task rerun + cascade)：单 stage 重跑频次记录（24h × 5 次/mission+stepId 防滥用）
-  rerunAttempts   AgentPlaygroundRerunAttempt[]
+  rerunAttempts     AgentPlaygroundRerunAttempt[]
   /// ★ Foresight L3 (2026-05-29)：本 mission 产出的前瞻预测留痕（到期裁决 + Brier 校准）
   predictionRecords AgentPlaygroundPredictionRecord[]
   /// ★ 2026-05-30 P0 remediation：本 mission 的成本台账（逐 step LLM 用量）
@@ -10113,10 +10113,10 @@ model AgentPlaygroundRerunAttempt {
 ///   → s12/Leader 聚合该 topic Brier 反哺下次预测保守度。
 /// 独立表（非 mission JSON 字段）：支持 targetDate 索引到期扫描 + 跨 mission Brier 聚合。
 model AgentPlaygroundPredictionRecord {
-  id                 String                 @id @default(uuid())
-  missionId          String                 @map("mission_id")
-  mission            AgentPlaygroundMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  userId             String                 @map("user_id")
+  id        String                 @id @default(uuid())
+  missionId String                 @map("mission_id")
+  mission   AgentPlaygroundMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  userId    String                 @map("user_id")
 
   /// 预测内容（来自 analyst.foresight.baseCase）
   predictionText     String   @map("prediction_text") @db.Text
@@ -10134,10 +10134,10 @@ model AgentPlaygroundPredictionRecord {
   judgmentAt         DateTime? @map("judgment_at")
 
   /// Brier 分数 = (probability - (actualOutcome?1:0))^2，越低越准
-  brierScore         Float? @map("brier_score")
+  brierScore Float? @map("brier_score")
 
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   /// 到期回扫："targetDate <= now 且 actualOutcome IS NULL"
   @@index([actualOutcome, targetDate])
@@ -10185,20 +10185,20 @@ model AskSelfDrivenMissionEvent {
 /// terminal-state arbitration survive pod recycles (in-memory ownership is lost
 /// on restart). Mirrors the role agent_playground_missions plays for playground.
 model AskSelfDrivenMission {
-  id           String   @id
-  userId       String   @map("user_id")
-  status       String   @default("running") // running | completed | failed | cancelled
+  id           String    @id
+  userId       String    @map("user_id")
+  status       String    @default("running") // running | completed | failed | cancelled
   prompt       String?
-  errorMessage String?  @map("error_message")
+  errorMessage String?   @map("error_message")
   heartbeatAt  DateTime? @map("heartbeat_at")
   // Downloadable deliverable: the final report is offloaded to external object
   // storage (reportUri = object key) so it survives + is downloadable later.
   // Null until the deliver phase completes (or if object storage is disabled —
   // the download endpoint then falls back to the event journal's deliverable).
-  reportUri    String?  @map("report_uri")
-  reportSize   Int?     @map("report_size")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  reportUri    String?   @map("report_uri")
+  reportSize   Int?      @map("report_size")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@index([userId, status])
   @@map("ask_self_driven_missions")
@@ -10452,7 +10452,6 @@ model DreamingRule {
   @@map("dreaming_rules")
 }
 
-
 /// AI Provider catalog（数据驱动 BYOK / 模型配置）
 ///
 /// 替代之前 hardcoded PROVIDER_DEFAULTS（user-api-keys.service.ts）+ 前端
@@ -10616,6 +10615,8 @@ enum RadarTopicStatus {
 enum RadarSourceType {
   X
   YOUTUBE
+  GITHUB
+  HUGGING_FACE
   RSS
   CUSTOM
 }
@@ -10646,22 +10647,22 @@ enum RadarRunTrigger {
 
 /// AI Radar 雷达主题（用户创建的监控主题，持续采集多源数据）
 model RadarTopic {
-  id          String  @id @default(uuid())
-  userId      String  @map("user_id")
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String            @id @default(uuid())
+  userId      String            @map("user_id")
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// 多租户可见性（PRIVATE 私有 / SHARED 同工作区 / PUBLIC 公开）
   visibility  ContentVisibility @default(PRIVATE)
-  name        String  @db.VarChar(160)
-  description String? @db.Text
+  name        String            @db.VarChar(160)
+  description String?           @db.Text
   /// 主题对象类型 person|company|product|event|topic
-  entityType  String? @map("entity_type") @db.VarChar(40)
+  entityType  String?           @map("entity_type") @db.VarChar(40)
   /// 关键词数组 string[]，最多 20 个
   keywords    Json
   /// 关键词匹配模式：semantic（仅 LLM 语义评分，默认）/ literal（标题+正文必须含
   /// 任一关键词，否则淘汰）/ hybrid（字面命中则加分但不淘汰）。子串大小写不敏感。
-  matchMode   String  @default("semantic") @map("match_mode") @db.VarChar(10)
+  matchMode   String            @default("semantic") @map("match_mode") @db.VarChar(10)
   /// cron 表达式，默认每 6 小时
-  refreshCron String  @default("0 */6 * * *") @map("refresh_cron") @db.VarChar(60)
+  refreshCron String            @default("0 */6 * * *") @map("refresh_cron") @db.VarChar(60)
 
   status    RadarTopicStatus @default(ACTIVE)
   /// 调度器扫描字段：下次应运行时间
@@ -10817,14 +10818,14 @@ model RadarRun {
   workspaceId String?    @map("workspace_id")
 
   /// 状态（mission lifecycle 标准 5 态，VarChar 避免 enum 升级痛苦）
-  status      String          @db.VarChar(20) // running / completed / failed / cancelled / rejected
-  trigger     RadarRunTrigger
-  startedAt   DateTime?       @map("started_at")
-  completedAt DateTime?       @map("completed_at")
+  status        String          @db.VarChar(20) // running / completed / failed / cancelled / rejected
+  trigger       RadarRunTrigger
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
   /// 总耗时 ms（mission level wall clock，实测耗时）
-  durationMs  Int?            @map("duration_ms")
+  durationMs    Int?            @map("duration_ms")
   /// ★ C4/G5：wall-time 上限（配置态）。原名 wallTimeMs 二义(别处指实测)→改 wallTimeCapMs。
-  wallTimeCapMs Int?          @map("wall_time_cap_ms")
+  wallTimeCapMs Int?            @map("wall_time_cap_ms")
 
   /// Mission 输入快照（业务方决定 schema，runtime-shell.createMissionRow 写入）
   maxCredits Int   @default(50) @map("max_credits")
@@ -10836,14 +10837,14 @@ model RadarRun {
   lastCompletedStage Int?      @map("last_completed_stage")
 
   /// {fetched,deduped,scored,accepted,llmCost,...} —— 由 dispatcher / persist stage 累计
-  metrics   Json?
+  metrics        Json?
   /// pipeline / orchestrator throw 时的 error message（mission 终态填充）
-  error     String?  @db.Text
+  error          String?  @db.Text
   /// ★ C2/G3：mission 级 canonical failure code（MissionFailureCode）。category 读时派生。
-  failureCode String? @map("failure_code") @db.VarChar(40)
+  failureCode    String?  @map("failure_code") @db.VarChar(40)
   /// ★ C5/G7（三 app 统一）：typed MissionConfigSnapshot,openSession 冻结的 canonical 配置记录。
-  configSnapshot Json? @map("config_snapshot")
-  createdAt DateTime @default(now()) @map("created_at")
+  configSnapshot Json?    @map("config_snapshot")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([topicId, startedAt(sort: Desc)])
   @@index([status, startedAt])
@@ -11022,20 +11023,20 @@ model SocialContentTaskSource {
 }
 
 model SocialContentTaskVersion {
-  id           String                     @id @default(cuid())
-  taskId       String
-  platform     String
-  status       SocialContentVersionStatus @default(GENERATING)
-  title        String
-  content      String                     @db.Text
-  bodyMime     String                     @default("text/html")
-  digest       String?
-  tags         String[]                   @default([])
-  coverMediaId String?
+  id            String                     @id @default(cuid())
+  taskId        String
+  platform      String
+  status        SocialContentVersionStatus @default(GENERATING)
+  title         String
+  content       String                     @db.Text
+  bodyMime      String                     @default("text/html")
+  digest        String?
+  tags          String[]                   @default([])
+  coverMediaId  String?
   coverImageUrl String?
-  publishedAt  DateTime?
-  externalUrl  String?
-  errorMessage String?
+  publishedAt   DateTime?
+  externalUrl   String?
+  errorMessage  String?
 
   task SocialContentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
@@ -11151,7 +11152,6 @@ model AgentPlaygroundMissionCostLedger {
   @@map("agent_playground_mission_cost_ledger")
 }
 
-
 // ============================================================================
 // Playground Mission Graph（任务图谱分析）
 //   - 从 mission report 中 LLM 抽取实体/关系，构建知识图谱并计算分析指标。
@@ -11184,12 +11184,12 @@ model PlaygroundMissionGraph {
 // ============================================================================
 
 model CompanyProfile {
-  id               String   @id @default(uuid())
-  userId           String   @unique @map("user_id")
-  name             String
-  ceoHiredAgentId  String?  @map("ceo_hired_agent_id")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  name            String
+  ceoHiredAgentId String?  @map("ceo_hired_agent_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("company_profiles")
 }
@@ -11227,11 +11227,11 @@ model CompanyTeam {
 }
 
 model CompanyTeamMember {
-  id             String      @id @default(uuid())
-  teamId         String      @map("team_id")
-  team           CompanyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  hiredAgentId   String      @map("hired_agent_id")
-  createdAt      DateTime    @default(now()) @map("created_at")
+  id           String      @id @default(uuid())
+  teamId       String      @map("team_id")
+  team         CompanyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  hiredAgentId String      @map("hired_agent_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
 
   @@unique([teamId, hiredAgentId])
   @@index([teamId])
@@ -11284,8 +11284,8 @@ model CompanyHero {
   userId       String   @map("user_id")
   capabilityId String   @map("capability_id")
   name         String
-  avatar       String?  // cosmetic 头像预设 key（纯展示，不入 prompt）
-  tagline      String?  // cosmetic 一句话人设（纯展示，不入 prompt）
+  avatar       String? // cosmetic 头像预设 key（纯展示，不入 prompt）
+  tagline      String? // cosmetic 一句话人设（纯展示，不入 prompt）
   models       String[]
   autoFallback Boolean  @default(true) @map("auto_fallback")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -11325,12 +11325,12 @@ model CompanyMissionGraph {
 /// 前瞻主题 —— 一个独立的洞察工作台（如「下一代算力底座」「创新药出海」）。
 /// 层级本体（layers）是主题自有的：算力底座用 L0-L5 六层栈，其他主题自定义。
 model ForesightTopic {
-  id          String  @id @default(uuid())
-  userId      String  @map("user_id")
-  name        String  @db.VarChar(120)
-  description String? @db.Text
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
   /// 层级定义 [{id,name,en?}]，图谱泳道与卡片归属按此渲染
-  layers      Json    @default("[]")
+  layers      Json     @default("[]")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -11344,34 +11344,34 @@ model ForesightTopic {
 }
 
 model ForesightCard {
-  id      String @id @default(uuid())
-  userId  String @map("user_id")
-  topicId String @map("topic_id")
-  topic   ForesightTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  id         String         @id @default(uuid())
+  userId     String         @map("user_id")
+  topicId    String         @map("topic_id")
+  topic      ForesightTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
   /// 业务编号（如 A-L4-01），主题内唯一
-  cardKey String @map("card_key") @db.VarChar(40)
+  cardKey    String         @map("card_key") @db.VarChar(40)
   /// 层级 L0-L5（业务负载/模型架构/系统软件/系统级硬件/芯片/物理底座）
-  layer   String @db.VarChar(8)
-  title   String @db.VarChar(200)
-  claim   String @db.Text
+  layer      String         @db.VarChar(8)
+  title      String         @db.VarChar(200)
+  claim      String         @db.Text
   /// 置信度 0-1（情景加权综合值；分支值见 scenarios）
-  conf    Float
+  conf       Float
   /// 敏感度 high | mid | low
-  sens    String @db.VarChar(8)
+  sens       String         @db.VarChar(8)
   /// 判断时间窗（年份）
-  horizon Int
+  horizon    Int
   /// 代际阶段 current | evolving | exploring | research
-  stage   String @db.VarChar(16)
+  stage      String         @db.VarChar(16)
   /// 证据要点 string[]
-  evidence   Json @default("[]")
+  evidence   Json           @default("[]")
   /// 证伪信号（预登记条件）string[]
-  falsifiers Json @default("[]")
+  falsifiers Json           @default("[]")
   /// 信源 [{org,title,type,url}]
-  sources    Json @default("[]")
+  sources    Json           @default("[]")
   /// 情景条件置信度 [{scenario,p,conf}]，null = 非分叉卡
   scenarios  Json?
   /// 来源 manual | insight-mission | research
-  originType String @default("manual") @map("origin_type") @db.VarChar(24)
+  originType String         @default("manual") @map("origin_type") @db.VarChar(24)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -11388,21 +11388,21 @@ model ForesightCard {
 }
 
 model ForesightEdge {
-  id         String        @id @default(uuid())
-  userId     String        @map("user_id")
-  topicId    String        @map("topic_id")
+  id         String         @id @default(uuid())
+  userId     String         @map("user_id")
+  topicId    String         @map("topic_id")
   topicRef   ForesightTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  fromCardId String        @map("from_card_id")
-  toCardId   String        @map("to_card_id")
-  from       ForesightCard @relation("EdgeFrom", fields: [fromCardId], references: [id], onDelete: Cascade)
-  to         ForesightCard @relation("EdgeTo", fields: [toCardId], references: [id], onDelete: Cascade)
+  fromCardId String         @map("from_card_id")
+  toCardId   String         @map("to_card_id")
+  from       ForesightCard  @relation("EdgeFrom", fields: [fromCardId], references: [id], onDelete: Cascade)
+  to         ForesightCard  @relation("EdgeTo", fields: [toCardId], references: [id], onDelete: Cascade)
   /// 量化传导参数（边的语义，如 "专家并行 EP 通信量"）
-  metric     String        @db.VarChar(120)
+  metric     String         @db.VarChar(120)
   /// flow 影响传导 | constrain 约束反压
-  type       String        @default("flow") @db.VarChar(12)
+  type       String         @default("flow") @db.VarChar(12)
   /// 传导强度 0-1，传播冲击度沿路径连乘衰减
-  weight     Float         @default(0.7)
-  createdAt  DateTime      @default(now()) @map("created_at")
+  weight     Float          @default(0.7)
+  createdAt  DateTime       @default(now()) @map("created_at")
 
   @@unique([fromCardId, toCardId])
   @@index([userId])
@@ -11412,27 +11412,27 @@ model ForesightEdge {
 }
 
 model ForesightSignal {
-  id           String  @id @default(uuid())
-  userId       String  @map("user_id")
-  topicId      String  @map("topic_id")
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  topicId      String         @map("topic_id")
   topic        ForesightTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  name         String  @db.VarChar(300)
+  name         String         @db.VarChar(300)
   /// 命中的假设卡
-  targetCardId String  @map("target_card_id")
+  targetCardId String         @map("target_card_id")
   /// down 证伪下调 | up 约束收紧上调
-  direction    String  @default("down") @db.VarChar(8)
+  direction    String         @default("down") @db.VarChar(8)
   /// 裁定后源卡片的目标置信度
-  targetConf   Float   @map("target_conf")
+  targetConf   Float          @map("target_conf")
   /// 传播效果说明（横幅文案）
-  effect       String  @db.Text
+  effect       String         @db.Text
   /// 依据档案 {falsifier,dir,threshold,observed,gradeNote,sources[]}
-  basis        Json    @default("{}")
+  basis        Json           @default("{}")
   /// strong 强信号（可注入）| weak 弱信号（仅关注）| none 未命中
-  grade        String  @default("strong") @db.VarChar(8)
+  grade        String         @default("strong") @db.VarChar(8)
   /// candidate 候选 | injected 已注入 | archived 归档
-  status       String  @default("candidate") @db.VarChar(12)
-  injectedAt   DateTime? @map("injected_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  status       String         @default("candidate") @db.VarChar(12)
+  injectedAt   DateTime?      @map("injected_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
 
   reviewItems ForesightReviewItem[]
 
@@ -11442,25 +11442,25 @@ model ForesightSignal {
 }
 
 model ForesightReviewItem {
-  id       String          @id @default(uuid())
-  userId   String          @map("user_id")
-  signalId String          @map("signal_id")
-  signal   ForesightSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
-  cardId   String          @map("card_id")
-  card     ForesightCard   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  id         String          @id @default(uuid())
+  userId     String          @map("user_id")
+  signalId   String          @map("signal_id")
+  signal     ForesightSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+  cardId     String          @map("card_id")
+  card       ForesightCard   @relation(fields: [cardId], references: [id], onDelete: Cascade)
   /// 冲击度 = 沿路径边权连乘的最大值（源卡 = 1.0）
-  impact   Float
+  impact     Float
   /// BFS 传播深度（源卡 = 0）
-  depth    Int
-  isSource Boolean @default(false) @map("is_source")
+  depth      Int
+  isSource   Boolean         @default(false) @map("is_source")
   /// pending 待裁定 | resolved 已裁定
-  status   String  @default("pending") @db.VarChar(12)
+  status     String          @default("pending") @db.VarChar(12)
   /// adjust 确认调整 | keep 维持原判
-  decision String? @db.VarChar(8)
-  confFrom Float?  @map("conf_from")
-  confTo   Float?  @map("conf_to")
-  resolvedAt DateTime? @map("resolved_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
+  decision   String?         @db.VarChar(8)
+  confFrom   Float?          @map("conf_from")
+  confTo     Float?          @map("conf_to")
+  resolvedAt DateTime?       @map("resolved_at")
+  createdAt  DateTime        @default(now()) @map("created_at")
 
   @@index([userId, status])
   @@index([cardId, status])
@@ -11469,16 +11469,16 @@ model ForesightReviewItem {
 
 /// 置信度账本：每次修订留痕（校准回看的数据基础）
 model ForesightConfLog {
-  id       String        @id @default(uuid())
-  userId   String        @map("user_id")
-  cardId   String        @map("card_id")
-  card     ForesightCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  fromConf Float         @map("from_conf")
-  toConf   Float         @map("to_conf")
+  id        String        @id @default(uuid())
+  userId    String        @map("user_id")
+  cardId    String        @map("card_id")
+  card      ForesightCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  fromConf  Float         @map("from_conf")
+  toConf    Float         @map("to_conf")
   /// 操作者（Owner 裁定 / Champion-L4 / 季度复核 等）
-  actor    String        @db.VarChar(60)
-  reason   String        @db.Text
-  createdAt DateTime     @default(now()) @map("created_at")
+  actor     String        @db.VarChar(60)
+  reason    String        @db.Text
+  createdAt DateTime      @default(now()) @map("created_at")
 
   @@index([cardId, createdAt(sort: Desc)])
   @@index([userId])
@@ -11486,23 +11486,23 @@ model ForesightConfLog {
 }
 
 model ForesightConclusion {
-  id        String @id @default(uuid())
-  userId    String @map("user_id")
-  topicId   String @map("topic_id")
-  topic     ForesightTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  conclKey  String @map("concl_key") @db.VarChar(24)
-  title     String @db.VarChar(300)
-  body      String @db.Text
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  topicId      String         @map("topic_id")
+  topic        ForesightTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  conclKey     String         @map("concl_key") @db.VarChar(24)
+  title        String         @db.VarChar(300)
+  body         String         @db.Text
   /// 决策建议 string[]（带量化阈值与时间窗）
-  decisions Json   @default("[]")
+  decisions    Json           @default("[]")
   /// 重估触发条件
-  trigger   String @db.Text
+  trigger      String         @db.Text
   /// 依据假设的 cardKey 列表
-  upstreamKeys String[] @map("upstream_keys")
-  conf      Float
-  horizon   Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  upstreamKeys String[]       @map("upstream_keys")
+  conf         Float
+  horizon      Int
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
 
   @@unique([topicId, conclKey])
   @@index([userId])

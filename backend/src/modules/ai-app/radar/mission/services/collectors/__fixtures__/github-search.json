@@ -1,0 +1,26 @@
+{
+  "total_count": 1,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 101,
+      "node_id": "R_fixture",
+      "full_name": "genesispod/native-radar",
+      "html_url": "https://github.com/genesispod/native-radar",
+      "description": "A fixture for the native GitHub radar adapter",
+      "owner": {
+        "login": "genesispod",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4"
+      },
+      "language": "TypeScript",
+      "topics": ["agents", "research"],
+      "stargazers_count": 420,
+      "forks_count": 21,
+      "open_issues_count": 3,
+      "watchers_count": 420,
+      "created_at": "2026-07-01T00:00:00Z",
+      "updated_at": "2026-08-09T12:00:00Z",
+      "pushed_at": "2026-08-09T12:00:00Z"
+    }
+  ]
+}

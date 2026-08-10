@@ -14,6 +14,16 @@ describe("isPublicSource", () => {
     ).toBe(true);
   });
 
+  it.each([
+    ["GITHUB", "trending"],
+    ["HUGGING_FACE", "papers"],
+  ] as const)(
+    "returns true for native public API source %s",
+    (type, identifier) => {
+      expect(isPublicSource({ type, identifier })).toBe(true);
+    },
+  );
+
   it("returns false for RSS with basic-auth credentials in URL", () => {
     expect(
       isPublicSource({

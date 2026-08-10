@@ -46,6 +46,8 @@ type Translate = (
 const SOURCE_TYPE_LABEL: Record<RadarSourceType, string> = {
   X: 'X (Twitter)',
   YOUTUBE: 'YouTube',
+  GITHUB: 'GitHub',
+  HUGGING_FACE: 'Hugging Face',
   RSS: 'RSS',
   CUSTOM: '自定义',
 };
@@ -57,6 +59,8 @@ const SOURCE_TYPE_LABEL: Record<RadarSourceType, string> = {
 const ADDABLE_SOURCE_TYPES: CreatableRadarSourceType[] = [
   'RSS',
   'YOUTUBE',
+  'GITHUB',
+  'HUGGING_FACE',
   'CUSTOM',
 ];
 
@@ -185,7 +189,11 @@ function parseSourceLines(
         });
         return;
       }
-    } else if (!/^https?:\/\//i.test(identifier)) {
+    } else if (
+      type !== 'GITHUB' &&
+      type !== 'HUGGING_FACE' &&
+      !/^https?:\/\//i.test(identifier)
+    ) {
       issues.push({
         lineNo,
         reason: t('radar.sourceList.issue.identifierNotUrl', {
@@ -612,6 +620,7 @@ function AddSourceForm({
         type,
         identifier: identifier.trim(),
         label: label.trim() || undefined,
+        config: type === 'YOUTUBE' ? { fetchTranscript: true } : undefined,
         enabled: true,
         authorityWeight,
       });
@@ -667,9 +676,13 @@ function AddSourceForm({
             <label className="block text-xs text-gray-600">
               {type === 'YOUTUBE'
                 ? 'channelId (UC...) 或 youtube.com URL'
-                : type === 'RSS'
-                  ? 'RSS feed URL（公开免费，不要 paywall）'
-                  : '列表页 URL（config.listSelector 在后台配）'}
+                : type === 'GITHUB'
+                  ? 'trending、owner/repo 或 GitHub 仓库搜索查询'
+                  : type === 'HUGGING_FACE'
+                    ? 'models、papers、models:<query> 或 papers:<query>'
+                    : type === 'RSS'
+                      ? 'RSS feed URL（公开免费，不要 paywall）'
+                      : '列表页 URL（config.listSelector 在后台配）'}
             </label>
             <input
               type="text"

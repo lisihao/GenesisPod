@@ -18,7 +18,7 @@ const PRIVATE_HOST_PATTERNS = [
  * Determines whether a RadarSource is publicly accessible (no auth, no private network).
  *
  * Rules:
- * - X / YOUTUBE: always public (public accounts by definition)
+ * - X / YOUTUBE / GITHUB / HUGGING_FACE: public API sources
  * - RSS / CUSTOM: public only if the URL has no credentials, no private-IP host,
  *   and no auth-related config keys (Authorization header, Cookie, apiKey, bearerToken)
  * - Unknown types: conservatively public (true)
@@ -26,7 +26,14 @@ const PRIVATE_HOST_PATTERNS = [
 export function isPublicSource(input: IsPublicSourceInput): boolean {
   const { type, identifier, config } = input;
 
-  if (type === "X" || type === "YOUTUBE") return true;
+  if (
+    type === "X" ||
+    type === "YOUTUBE" ||
+    type === "GITHUB" ||
+    type === "HUGGING_FACE"
+  ) {
+    return true;
+  }
 
   if (type === "RSS" || type === "CUSTOM") {
     let url: URL;

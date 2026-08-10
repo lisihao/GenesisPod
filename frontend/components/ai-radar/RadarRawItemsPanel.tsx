@@ -23,6 +23,8 @@ interface Props {
 const TYPE_LABEL: Record<RadarSourceType, string> = {
   X: 'X',
   YOUTUBE: 'YT',
+  GITHUB: 'GitHub',
+  HUGGING_FACE: 'HF',
   RSS: 'RSS',
   CUSTOM: 'Web',
 };
@@ -30,6 +32,8 @@ const TYPE_LABEL: Record<RadarSourceType, string> = {
 const TYPE_COLOR: Record<RadarSourceType, string> = {
   X: 'bg-gray-100 text-gray-700',
   YOUTUBE: 'bg-red-50 text-red-700',
+  GITHUB: 'bg-slate-100 text-slate-800',
+  HUGGING_FACE: 'bg-yellow-50 text-yellow-800',
   RSS: 'bg-orange-50 text-orange-700',
   CUSTOM: 'bg-indigo-50 text-indigo-700',
 };

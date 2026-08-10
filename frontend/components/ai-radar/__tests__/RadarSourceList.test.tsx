@@ -4,7 +4,7 @@
  * RadarSourceList 单元测试
  *
  * 覆盖（R2 5 路评审产出清单 — task #34）：
- *  - AddSourceForm 只渲染 RSS / YOUTUBE / CUSTOM 三个按钮，X 永不出现
+ *  - AddSourceForm 渲染原生 GITHUB / HUGGING_FACE / RSS / YOUTUBE / CUSTOM，X 永不出现
  *  - 选 CUSTOM 时显 amber warning（需配 listSelector）
  *  - 选 YOUTUBE / RSS / CUSTOM 时 identifier label 切换正确
  *  - 老 type=X 源仍能渲染（label 显示 "X (Twitter)"），不崩
@@ -123,7 +123,7 @@ describe('RadarSourceList', () => {
       return screen.getByRole('dialog');
     }
 
-    it('只渲染 RSS / YouTube / 自定义 三个按钮，X 永不出现', () => {
+    it('渲染五种原生可添加来源，X 永不出现', () => {
       const dialog = openAddForm();
       const scoped = within(dialog);
       expect(scoped.getByRole('button', { name: 'RSS' })).toBeInTheDocument();
@@ -132,6 +132,12 @@ describe('RadarSourceList', () => {
       ).toBeInTheDocument();
       expect(
         scoped.getByRole('button', { name: '自定义' })
+      ).toBeInTheDocument();
+      expect(
+        scoped.getByRole('button', { name: 'GitHub' })
+      ).toBeInTheDocument();
+      expect(
+        scoped.getByRole('button', { name: 'Hugging Face' })
       ).toBeInTheDocument();
       expect(
         scoped.queryByRole('button', { name: /X \(Twitter\)/ })
@@ -150,6 +156,17 @@ describe('RadarSourceList', () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'YouTube' }));
       expect(
         within(dialog).getByText(/channelId \(UC\.\.\.\) 或 youtube\.com URL/)
+      ).toBeInTheDocument();
+    });
+
+    it('GitHub / Hugging Face 显示 typed identifier 契约', () => {
+      const dialog = openAddForm();
+      const scoped = within(dialog);
+      fireEvent.click(scoped.getByRole('button', { name: 'GitHub' }));
+      expect(scoped.getByText(/trending、owner\/repo/)).toBeInTheDocument();
+      fireEvent.click(scoped.getByRole('button', { name: 'Hugging Face' }));
+      expect(
+        scoped.getByText(/models、papers、models:<query>/)
       ).toBeInTheDocument();
     });
 
