@@ -1,5 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { RadarSource } from "@prisma/client";
+import { ContentFetchService } from "@/modules/ai-engine/facade";
 // CJS 互操作：rss-parser `module.exports = Parser`（无 default），TS `import Parser from`
 // 在 CJS target 编译成 `rss_parser_1.default()`，prod 立即 `not a constructor` 崩溃。
 // 用 namespace import 拿运行时对象 + type-only import 拿泛型签名。
@@ -61,7 +62,14 @@ export class YoutubeCollector implements ICollector {
   private readonly log = new Logger(YoutubeCollector.name);
   private readonly parser: ParserType<unknown, YouTubeRssItem>;
 
-  constructor() {
+  constructor(
+    @Optional()
+    @Inject(ContentFetchService)
+    private readonly contentFetch?: Pick<
+      ContentFetchService,
+      "fetchFromYoutubeUrl"
+    >,
+  ) {
     this.parser = new ParserCtor({
       timeout: 25_000,
       requestOptions: {
@@ -113,25 +121,119 @@ export class YoutubeCollector implements ICollector {
       const description = this.extractDescription(item);
       const metrics = this.extractMetrics(item);
       const thumbnail = this.extractThumbnail(item);
+      const videoUrl =
+        item.link ?? `https://www.youtube.com/watch?v=${videoId}`;
+      const transcript = await this.fetchTranscriptEvidence(
+        source,
+        videoId,
+        videoUrl,
+      );
+      const content = transcript.accepted ? transcript.content : description;
       out.push({
         externalId: videoId,
-        contentHash: computeContentHash(title, description),
+        contentHash: computeContentHash(title, content),
         title,
-        content: description,
+        content,
         author: item.author ?? null,
         authorAvatar: null,
-        url: item.link ?? `https://www.youtube.com/watch?v=${videoId}`,
+        url: videoUrl,
         publishedAt,
         metrics,
         raw: {
           videoId,
           thumbnail,
           channelId: item["yt:channelId"] ?? channelId,
+          evidence: {
+            provider: "youtube",
+            externalId: videoId,
+            url: videoUrl,
+            observedAt: new Date().toISOString(),
+            transcript: transcript.evidence,
+          },
         },
       });
     }
     this.log.debug(`YT channel=${channelId} → ${out.length} new videos`);
     return out;
+  }
+
+  private async fetchTranscriptEvidence(
+    source: RadarSource,
+    videoId: string,
+    videoUrl: string,
+  ): Promise<{
+    accepted: boolean;
+    content: string | null;
+    evidence: TranscriptEvidence;
+  }> {
+    const config = this.readConfig(source.config);
+    if (!config.fetchTranscript) {
+      return {
+        accepted: false,
+        content: null,
+        evidence: { status: "not_requested", reason: "fetchTranscript=false" },
+      };
+    }
+    if (!this.contentFetch) {
+      return {
+        accepted: false,
+        content: null,
+        evidence: {
+          status: "unavailable",
+          reason: "ContentFetchService not available",
+        },
+      };
+    }
+    try {
+      const fetched = await this.contentFetch.fetchFromYoutubeUrl(
+        videoId,
+        videoUrl,
+      );
+      const quality = assessTranscriptQuality(
+        fetched.content,
+        config.transcriptMinChars,
+      );
+      return {
+        accepted: quality.accepted,
+        content: quality.accepted ? fetched.content : null,
+        evidence: {
+          status: quality.accepted ? "accepted" : "rejected",
+          reason: quality.reason,
+          charCount: quality.charCount,
+          wordCount: quality.wordCount,
+          fetchedAt: String(
+            fetched.metadata?.fetchedAt ?? new Date().toISOString(),
+          ),
+          isBilingual: fetched.isBilingual ?? false,
+        },
+      };
+    } catch (error) {
+      const reason = (error as Error).message || String(error);
+      this.log.warn(`YT transcript unavailable video=${videoId}: ${reason}`);
+      return {
+        accepted: false,
+        content: null,
+        evidence: { status: "unavailable", reason },
+      };
+    }
+  }
+
+  private readConfig(value: unknown): {
+    fetchTranscript: boolean;
+    transcriptMinChars: number;
+  } {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { fetchTranscript: false, transcriptMinChars: 200 };
+    }
+    const config = value as Record<string, unknown>;
+    const rawMin = config.transcriptMinChars;
+    return {
+      fetchTranscript: config.fetchTranscript === true,
+      transcriptMinChars:
+        typeof rawMin === "number" && Number.isFinite(rawMin)
+          ? Math.min(10_000, Math.max(100, Math.floor(rawMin)))
+          : 200,
+    };
   }
 
   private extractChannelId(identifier: string): string | null {
@@ -272,4 +374,61 @@ export class YoutubeCollector implements ICollector {
     const d = new Date(s);
     return Number.isNaN(d.getTime()) ? null : d;
   }
+}
+
+export interface TranscriptEvidence {
+  status: "not_requested" | "accepted" | "rejected" | "unavailable";
+  reason: string;
+  charCount?: number;
+  wordCount?: number;
+  fetchedAt?: string;
+  isBilingual?: boolean;
+}
+
+export function assessTranscriptQuality(
+  content: string | null | undefined,
+  minChars = 200,
+): {
+  accepted: boolean;
+  reason: string;
+  charCount: number;
+  wordCount: number;
+} {
+  const normalized = (content ?? "").replace(/\s+/g, " ").trim();
+  const wordCount = normalized ? normalized.split(/\s+/).length : 0;
+  const charCount = normalized.length;
+  if (!normalized) {
+    return {
+      accepted: false,
+      reason: "empty_transcript",
+      charCount,
+      wordCount,
+    };
+  }
+  if (
+    /(?:transcript (?:is )?unavailable|subtitles? (?:are )?disabled|sign in to confirm)/i.test(
+      normalized,
+    )
+  ) {
+    return {
+      accepted: false,
+      reason: "provider_error_text",
+      charCount,
+      wordCount,
+    };
+  }
+  if (charCount < minChars) {
+    return {
+      accepted: false,
+      reason: `too_short:${charCount}<${minChars}`,
+      charCount,
+      wordCount,
+    };
+  }
+  return {
+    accepted: true,
+    reason: "quality_gate_passed",
+    charCount,
+    wordCount,
+  };
 }
