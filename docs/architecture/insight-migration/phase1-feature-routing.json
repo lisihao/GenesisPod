@@ -11,7 +11,7 @@
   "features": [
     {
       "id": "github-trends",
-      "status": "ready_for_contract",
+      "status": "implemented_local",
       "source_paths": [
         "harness/scripts/github_trends_pipeline.py",
         "harness/scripts/github_trends_digest.py",
@@ -38,7 +38,7 @@
     },
     {
       "id": "hugging-face-insight",
-      "status": "ready_for_contract",
+      "status": "implemented_local",
       "source_paths": [
         "harness/lib/hf_paper_insight",
         "harness/tools/hf_paper_insight",
@@ -70,7 +70,7 @@
     },
     {
       "id": "youtube-creator-insight",
-      "status": "ready_for_contract",
+      "status": "implemented_local",
       "source_paths": [
         "harness/scripts/youtube_influence_digest.py",
         "harness/lib/ai_influence_youtube_report",
@@ -100,7 +100,7 @@
     },
     {
       "id": "expert-cross-source-insight",
-      "status": "ready_for_contract",
+      "status": "implemented_local",
       "source_paths": [
         "harness/scripts/ai_influence_daily.py",
         "harness/scripts/ai_influence_unified_report.py",

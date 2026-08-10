@@ -24,7 +24,7 @@
     {
       "id": "G2",
       "name": "GitHub 趋势 typed adapter",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["G1"],
       "acceptance": [
         "contract fixture",
@@ -36,7 +36,7 @@
     {
       "id": "G3",
       "name": "Hugging Face typed adapter",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["G2"],
       "acceptance": [
         "contract fixture",
@@ -48,7 +48,7 @@
     {
       "id": "G4",
       "name": "YouTube 证据与报告增强",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["G1"],
       "acceptance": [
         "不重复 collector",
@@ -60,7 +60,7 @@
     {
       "id": "G5",
       "name": "大咖跨来源主题与报告",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["G3", "G4"],
       "acceptance": [
         "person topic",
