@@ -42,6 +42,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cachedUser = getCurrentUser();
 
       if (!tokens || !cachedUser) {
+        if (process.env.NEXT_PUBLIC_LOCAL_SINGLE_USER_MODE === 'true') {
+          try {
+            const response = await fetch(
+              `${config.apiUrl}/auth/local-session`,
+              { method: 'POST' }
+            );
+            if (response.ok) {
+              const result = await response.json();
+              const data = result?.data ?? result;
+              saveAuthTokens({
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken,
+              });
+              saveCurrentUser(data.user);
+              setAuthState({
+                user: data.user,
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken,
+              });
+            }
+          } catch (error) {
+            logger.warn('Local single-user session bootstrap failed', error);
+          }
+        }
         setIsLoading(false);
         return;
       }

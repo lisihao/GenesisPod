@@ -20,7 +20,11 @@ jest.mock("ioredis", () => ({}));
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
-import { UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { AuthController } from "../auth.controller";
@@ -37,6 +41,7 @@ import { UpdateProfileDto } from "@/modules/open-api/system/auth/dto/update-prof
 const mockAuthService = {
   register: jest.fn(),
   login: jest.fn(),
+  issueLocalSession: jest.fn(),
   refreshToken: jest.fn(),
   getFullProfile: jest.fn(),
   findOrCreateGoogleUser: jest.fn(),
@@ -69,6 +74,7 @@ const mockUserPayload = {
 function makeRequest(overrides: Record<string, unknown> = {}) {
   return {
     ip: "127.0.0.1",
+    socket: { remoteAddress: "127.0.0.1" },
     headers: { "user-agent": "jest-test-agent" },
     user: mockUserPayload,
     ...overrides,
@@ -244,6 +250,57 @@ describe("AuthController", () => {
       await expect(controller.login(req as never, dto)).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+  });
+
+  describe("localSession()", () => {
+    const authResponse = {
+      accessToken: "local-access-token",
+      refreshToken: "local-refresh-token",
+      user: mockUserPayload,
+    };
+
+    it("issues a session when enabled and called over loopback", async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === "LOCAL_SINGLE_USER_MODE") return "true";
+        if (key === "LOCAL_SINGLE_USER_EMAIL") return "owner@example.com";
+        return undefined;
+      });
+      mockAuthService.issueLocalSession.mockResolvedValue(authResponse);
+
+      const result = await controller.localSession(
+        makeRequest({
+          socket: { remoteAddress: "::ffff:127.0.0.1" },
+          headers: { "user-agent": "local-browser" },
+        }) as never,
+      );
+
+      expect(mockAuthService.issueLocalSession).toHaveBeenCalledWith(
+        "owner@example.com",
+        {
+          ipAddress: "::ffff:127.0.0.1",
+          userAgent: "local-browser",
+        },
+      );
+      expect(result).toEqual(authResponse);
+    });
+
+    it("stays hidden when single-user mode is disabled", async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+      await expect(
+        controller.localSession(makeRequest() as never),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("rejects non-loopback callers", async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === "LOCAL_SINGLE_USER_MODE" ? "true" : "owner@example.com",
+      );
+      await expect(
+        controller.localSession(
+          makeRequest({ socket: { remoteAddress: "100.64.0.2" } }) as never,
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

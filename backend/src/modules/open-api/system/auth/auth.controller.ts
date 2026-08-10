@@ -9,6 +9,8 @@ import {
   Response,
   Logger,
   HttpCode,
+  ForbiddenException,
+  NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
@@ -134,6 +136,38 @@ export class AuthController {
   }
 
   /**
+   * Passwordless bootstrap for a private, single-user on-prem deployment.
+   * Disabled by default and restricted to a direct loopback connection so a
+   * LAN/Tailscale client cannot mint a session by calling the backend port.
+   */
+  @Public()
+  @Post("local-session")
+  @HttpCode(200)
+  @ApiOperation({ summary: "创建本机单用户会话" })
+  async localSession(@Request() req: ExpressRequest) {
+    const enabled =
+      this.configService.get<string>("LOCAL_SINGLE_USER_MODE") === "true";
+    if (!enabled) throw new NotFoundException();
+
+    const remoteAddress = req.socket?.remoteAddress;
+    if (!this.isLoopback(remoteAddress)) {
+      throw new ForbiddenException(
+        "Local single-user session is loopback only",
+      );
+    }
+
+    const email =
+      this.configService.get<string>("LOCAL_SINGLE_USER_EMAIL")?.trim() ||
+      this.configService.get<string>("ADMIN_INITIAL_EMAIL")?.trim();
+    if (!email) throw new NotFoundException();
+
+    return this.authService.issueLocalSession(email, {
+      ipAddress: remoteAddress,
+      userAgent: req.headers["user-agent"],
+    });
+  }
+
+  /**
    * 刷新 token
    * POST /api/v1/auth/refresh
    * Rate limited: 10 requests per minute
@@ -159,6 +193,14 @@ export class AuthController {
   @ApiResponse({ status: 429, description: "请求过于频繁，请稍后再试" })
   async refresh(@Request() req: { user: { id: string } }) {
     return this.authService.refreshToken(req.user.id);
+  }
+
+  private isLoopback(address?: string): boolean {
+    return (
+      address === "127.0.0.1" ||
+      address === "::1" ||
+      address === "::ffff:127.0.0.1"
+    );
   }
 
   /**

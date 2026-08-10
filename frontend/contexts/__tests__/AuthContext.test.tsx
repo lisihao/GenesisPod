@@ -4,7 +4,7 @@
  * Tests AuthProvider initialization, token validation logic, login/logout
  * actions, and the useAuth hook guard.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React, { type ReactNode } from 'react';
 
@@ -103,6 +103,10 @@ beforeEach(() => {
   mockIsUserAdmin.mockReturnValue(false);
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 // ---------------------------------------------------------------------------
 // Initialization — no stored tokens
 // ---------------------------------------------------------------------------
@@ -119,6 +123,29 @@ describe('AuthProvider initialization without tokens', () => {
     expect(result.current.user).toBeNull();
     expect(result.current.accessToken).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('bootstraps a local session when single-user mode is enabled', async () => {
+    vi.stubEnv('NEXT_PUBLIC_LOCAL_SINGLE_USER_MODE', 'true');
+    mockGetAuthTokens.mockReturnValue(null);
+    mockGetCurrentUser.mockReturnValue(null);
+    mockFetch.mockReturnValue(
+      okResponse({
+        success: true,
+        data: { user: USER, ...TOKENS },
+      })
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://test-api/auth/local-session',
+      { method: 'POST' }
+    );
+    expect(mockSaveAuthTokens).toHaveBeenCalledWith(TOKENS);
+    expect(mockSaveCurrentUser).toHaveBeenCalledWith(USER);
+    expect(result.current.user).toEqual(USER);
   });
 });
 

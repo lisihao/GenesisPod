@@ -293,6 +293,39 @@ export class AuthService {
   }
 
   /**
+   * Issue a session for an explicitly configured single-user deployment.
+   *
+   * The controller keeps this path disabled by default and only permits
+   * loopback requests. Keeping token issuance in AuthService avoids sending
+   * the bootstrap password to the browser or storing it in frontend assets.
+   */
+  async issueLocalSession(email: string, requestInfo?: LoginRequestInfo) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.email || !user.isActive) {
+      throw new UnauthorizedException("Local user is unavailable");
+    }
+
+    const tokens = this.generateTokens(user.id, user.email, user.username);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+    await this.recordLoginHistory(user.id, requestInfo);
+    this.logger.log(`Local single-user session issued: ${user.username}`);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        createdAt: user.createdAt,
+        role: user.role,
+      },
+      ...tokens,
+    };
+  }
+
+  /**
    * 刷新 token
    */
   async refreshToken(userId: string) {

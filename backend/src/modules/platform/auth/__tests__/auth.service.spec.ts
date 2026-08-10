@@ -218,6 +218,36 @@ describe("AuthService", () => {
     });
   });
 
+  describe("issueLocalSession", () => {
+    it("issues tokens without comparing or returning a password", async () => {
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        role: "ADMIN",
+      });
+      (prismaService.user.update as jest.Mock).mockResolvedValue(mockUser);
+
+      const result = await service.issueLocalSession(mockUser.email, {
+        ipAddress: "127.0.0.1",
+        userAgent: "local-browser",
+      });
+
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+      expect(result.user).toMatchObject({
+        id: mockUser.id,
+        email: mockUser.email,
+        role: "ADMIN",
+      });
+      expect(result.accessToken).toBe("mock-token");
+    });
+
+    it("rejects a missing or inactive local user", async () => {
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+      await expect(
+        service.issueLocalSession("missing@example.com"),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
   describe("refreshToken", () => {
     it("should refresh token successfully", async () => {
       (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
