@@ -1,0 +1,143 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-10",
+  "genesispod_base_sha": "e572d2a7d8e1b7ca5500bcf8822284f9f59ba146",
+  "source": {
+    "repository": "solar-harness",
+    "sha": "7a0dff00a8a08d4e87678069672803412bd2f367",
+    "mode": "read_only"
+  },
+  "architecture": "native_radar_content_source_insight_pipeline",
+  "features": [
+    {
+      "id": "github-trends",
+      "status": "ready_for_contract",
+      "source_paths": [
+        "harness/scripts/github_trends_pipeline.py",
+        "harness/scripts/github_trends_digest.py",
+        "harness/scripts/tech_hotspot_radar.py",
+        "harness/lib/github_intelligence/adapters/trending.py",
+        "harness/config/github-trends.yaml",
+        "harness/tests/test-github-trends-digest.py"
+      ],
+      "target": {
+        "source_type": "GITHUB",
+        "modules": [
+          "backend/src/modules/ai-app/radar/mission/services/collectors",
+          "backend/src/modules/ai-app/radar/api/dto",
+          "backend/prisma/schema/models.prisma"
+        ]
+      },
+      "reuse": ["normalization", "velocity inputs", "evidence fields"],
+      "reject": [
+        "sqlite runtime",
+        "shell scheduler",
+        "absolute paths",
+        "legacy report UI"
+      ]
+    },
+    {
+      "id": "hugging-face-insight",
+      "status": "ready_for_contract",
+      "source_paths": [
+        "harness/lib/hf_paper_insight",
+        "harness/tools/hf_paper_insight",
+        "harness/config/tech-hotspot-radar.yaml",
+        "harness/tests/test_hf_paper_insight_collection.py",
+        "harness/tests/test_hf_paper_insight_schema.py",
+        "harness/tests/test_hf_paper_insight_scoring.py"
+      ],
+      "target": {
+        "source_type": "HUGGING_FACE",
+        "modules": [
+          "backend/src/modules/ai-app/radar/mission/services/collectors",
+          "backend/src/modules/ai-engine/content/fetch",
+          "backend/prisma/schema/models.prisma"
+        ]
+      },
+      "reuse": [
+        "canonicalization",
+        "metadata providers",
+        "asset linkage",
+        "scoring schema"
+      ],
+      "reject": [
+        "duplicated lib/tools trees",
+        "sqlite storage",
+        "harness state machine",
+        "absolute paths"
+      ]
+    },
+    {
+      "id": "youtube-creator-insight",
+      "status": "ready_for_contract",
+      "source_paths": [
+        "harness/scripts/youtube_influence_digest.py",
+        "harness/lib/ai_influence_youtube_report",
+        "harness/config/youtube-influence-digest.yaml",
+        "harness/tests/test-youtube-influence-digest.sh",
+        "harness/tests/test_ai_influence_youtube_report_validator.py"
+      ],
+      "target": {
+        "source_type": "YOUTUBE",
+        "modules": [
+          "backend/src/modules/ai-app/radar/mission/services/collectors/youtube-collector.service.ts",
+          "backend/src/modules/ai-engine/content/fetch",
+          "backend/src/modules/ai-app/insight"
+        ]
+      },
+      "reuse": [
+        "transcript quality gates",
+        "evidence map",
+        "report validation"
+      ],
+      "reject": [
+        "duplicate YouTube collector",
+        "browser-specific orchestration",
+        "tmux pane surface",
+        "legacy archive layout"
+      ]
+    },
+    {
+      "id": "expert-cross-source-insight",
+      "status": "ready_for_contract",
+      "source_paths": [
+        "harness/scripts/ai_influence_daily.py",
+        "harness/scripts/ai_influence_unified_report.py",
+        "harness/ai-influence-digest/references/accounts_extended.txt",
+        "harness/schemas/influence/output_assets/ai_influence_topic.schema.json"
+      ],
+      "target": {
+        "source_type": "COMPOSITE_PERSON_TOPIC",
+        "modules": [
+          "backend/src/modules/ai-app/radar",
+          "backend/src/modules/ai-app/insight",
+          "frontend/app/ai-insights",
+          "frontend/services/ai-radar"
+        ]
+      },
+      "reuse": [
+        "creator seed data after review",
+        "cross-source evidence model",
+        "report dimensions"
+      ],
+      "reject": [
+        "new collector type for a person",
+        "static success summaries",
+        "legacy HTML/status server"
+      ]
+    },
+    {
+      "id": "unfinished-2026-05-20-to-2026-07-20",
+      "status": "hold_user_selection_required",
+      "source_paths": [],
+      "target": null,
+      "reuse": [],
+      "reject": [
+        "bulk import",
+        "implicit completion",
+        "unreviewed behavior changes"
+      ]
+    }
+  ]
+}

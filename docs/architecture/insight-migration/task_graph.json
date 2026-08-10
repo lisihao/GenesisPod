@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "project": "genesispod-insight-migration",
+  "status": "active",
+  "nodes": [
+    {
+      "id": "G0",
+      "name": "固定开发语境与仓库边界",
+      "status": "done",
+      "depends_on": [],
+      "acceptance": ["两个目标仓库独立", "迁移源只读", "固定源和目标 SHA"]
+    },
+    {
+      "id": "G1",
+      "name": "建立 Phase 1 特性路由表",
+      "status": "done",
+      "depends_on": ["G0"],
+      "acceptance": [
+        "每项能力有源路径",
+        "每项能力有原生目标模块",
+        "明确拒绝迁移项"
+      ]
+    },
+    {
+      "id": "G2",
+      "name": "GitHub 趋势 typed adapter",
+      "status": "pending",
+      "depends_on": ["G1"],
+      "acceptance": [
+        "contract fixture",
+        "collector tests",
+        "Prisma migration",
+        "Radar integration test"
+      ]
+    },
+    {
+      "id": "G3",
+      "name": "Hugging Face typed adapter",
+      "status": "pending",
+      "depends_on": ["G2"],
+      "acceptance": [
+        "contract fixture",
+        "canonicalization tests",
+        "evidence linkage",
+        "Radar integration test"
+      ]
+    },
+    {
+      "id": "G4",
+      "name": "YouTube 证据与报告增强",
+      "status": "pending",
+      "depends_on": ["G1"],
+      "acceptance": [
+        "不重复 collector",
+        "transcript quality gate",
+        "report validator",
+        "negative control"
+      ]
+    },
+    {
+      "id": "G5",
+      "name": "大咖跨来源主题与报告",
+      "status": "pending",
+      "depends_on": ["G3", "G4"],
+      "acceptance": [
+        "person topic",
+        "multi-source binding",
+        "evidence-backed insight",
+        "frontend flow"
+      ]
+    },
+    {
+      "id": "G6",
+      "name": "Mac mini 独立部署与无输入访问",
+      "status": "pending",
+      "depends_on": ["G5"],
+      "acceptance": [
+        "fixed SHA",
+        "loopback only",
+        "MacBook tunnel",
+        "single-user auto session",
+        "health",
+        "rollback"
+      ]
+    },
+    {
+      "id": "G7",
+      "name": "Phase 2 未完成特性逐项选择",
+      "status": "hold",
+      "depends_on": ["G1"],
+      "acceptance": ["用户明确选择单项后再解锁"]
+    }
+  ]
+}

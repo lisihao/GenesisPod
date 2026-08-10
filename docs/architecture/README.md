@@ -4,14 +4,14 @@
 
 ## 五层结构
 
-| 层       | 文档                                | 代码路径                          | 说明                         |
-| -------- | ----------------------------------- | --------------------------------- | ---------------------------- |
-| L4       | [open-api/](open-api/readme.md)     | `backend/src/modules/open-api/`   | 对外 API、MCP、A2A、Webhooks |
-| L3       | [ai-app/](ai-app/README.md)         | `backend/src/modules/ai-app/`     | 业务应用层                   |
-| L2.5     | [ai-harness/](ai-harness/README.md) | `backend/src/modules/ai-harness/` | Agent 运行时与编排           |
-| L2       | [ai-engine/](ai-engine/README.md)   | `backend/src/modules/ai-engine/`  | 原子 AI 能力                 |
-| L1       | [platform/](ai-infra/README.md)     | `backend/src/modules/platform/`   | 基础设施底座（旧称 ai-infra）|
-| Frontend | [frontend/](frontend/README.md)     | `frontend/`                       | Next.js 应用                 |
+| 层       | 文档                                | 代码路径                          | 说明                          |
+| -------- | ----------------------------------- | --------------------------------- | ----------------------------- |
+| L4       | [open-api/](open-api/readme.md)     | `backend/src/modules/open-api/`   | 对外 API、MCP、A2A、Webhooks  |
+| L3       | [ai-app/](ai-app/README.md)         | `backend/src/modules/ai-app/`     | 业务应用层                    |
+| L2.5     | [ai-harness/](ai-harness/README.md) | `backend/src/modules/ai-harness/` | Agent 运行时与编排            |
+| L2       | [ai-engine/](ai-engine/README.md)   | `backend/src/modules/ai-engine/`  | 原子 AI 能力                  |
+| L1       | [platform/](ai-infra/README.md)     | `backend/src/modules/platform/`   | 基础设施底座（旧称 ai-infra） |
+| Frontend | [frontend/](frontend/README.md)     | `frontend/`                       | Next.js 应用                  |
 
 ## 图解
 
@@ -30,6 +30,12 @@
 - [monetization/](monetization/subscription-byok-credit-system-design.md)
   - 商业化：订阅制 + Free-tier BYOK + 统一 Credit 计量
   - 跨 platform(credits) / ai-app(byok) / ai-harness(计量) 的平台级设计
+
+## 在建架构
+
+- [insight-migration/DEVELOPMENT_CONTEXT.md](insight-migration/DEVELOPMENT_CONTEXT.md)
+  - solar-harness 洞察能力迁移的仓库边界、固定基线与阶段门禁
+  - GitHub、Hugging Face、YouTube 和大咖洞察统一接入原生 Radar/Insight 管线
 
 ## 依赖方向
 
