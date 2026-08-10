@@ -111,6 +111,8 @@ export interface RadarInsightPayload {
     kind: string;
     magnitude: number;
     evidence: string;
+    /** person topic requires at least one accepted RadarItem id per claim */
+    itemIds?: string[];
   }>;
   topEntities: Array<{
     type: string;

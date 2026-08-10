@@ -47,6 +47,9 @@ export class RadarS7InsightStage implements RadarStageRunner {
     const relevanceScores = ctx.state.relevanceScores ?? new Map();
     const qualityScores = ctx.state.qualityScores ?? new Map();
     const entityMap = ctx.state.entityMap ?? new Map();
+    const sourceMap = new Map(
+      (ctx.state.sources ?? []).map((source) => [source.id, source]),
+    );
 
     // 筛选 accepted 条目（relevance>=60 && quality>=50）
     const relMin = RADAR_PIPELINE_DEFAULTS.acceptedRelevanceMin;
@@ -59,7 +62,13 @@ export class RadarS7InsightStage implements RadarStageRunner {
         content: raw.content ?? "",
         url: raw.url ?? "",
         publishedAt: raw.publishedAt,
-        source: raw.sourceId,
+        sourceId: raw.sourceId,
+        sourceType: sourceMap.get(raw.sourceId)?.type ?? "UNKNOWN",
+        sourceLabel:
+          sourceMap.get(raw.sourceId)?.label ??
+          sourceMap.get(raw.sourceId)?.identifier ??
+          raw.sourceId,
+        author: raw.author,
       }))
       .filter((item) => {
         const rel = relevanceScores.get(item.id);
@@ -123,7 +132,10 @@ export class RadarS7InsightStage implements RadarStageRunner {
       content: string;
       url: string;
       publishedAt: Date;
-      source: string;
+      sourceId: string;
+      sourceType: string;
+      sourceLabel: string;
+      author: string | null;
     }>,
     qualityScores: Map<string, { score: number; summary: string }>,
     entityFreq: Array<{ type: string; name: string; mentions: number }>,
@@ -140,7 +152,11 @@ export class RadarS7InsightStage implements RadarStageRunner {
       ),
       url: item.url,
       publishedAt: item.publishedAt.toISOString().slice(0, 10),
-      source: item.source,
+      source: item.sourceId,
+      sourceId: item.sourceId,
+      sourceType: item.sourceType,
+      sourceLabel: item.sourceLabel,
+      author: item.author,
     }));
 
     const userPrompt = `主题：${JSON.stringify({
@@ -148,6 +164,8 @@ export class RadarS7InsightStage implements RadarStageRunner {
       description: truncate(topic.description ?? "", 300),
       entityType: topic.entityType ?? null,
     })}
+
+${buildInsightModeInstructions(topic.entityType, itemDigests)}
 
 本期新内容（${itemDigests.length} 条，已通过 relevance+quality 双重过滤）：
 ${itemDigests.map((d) => JSON.stringify(d)).join("\n")}
@@ -172,14 +190,14 @@ ${truncate(prevInsight.summary, 300)}`
     { "title": "高亮标题", "itemIds": ["<id1>", "<id2>"], "type": "trend|new-entity|anomaly|key-event" }
   ],
   "signals": [
-    { "kind": "信号类型", "magnitude": 0-10, "evidence": "≤100 字佐证" }
+    { "kind": "信号类型", "magnitude": 0-10, "evidence": "≤100 字佐证", "itemIds": ["<id1>"] }
   ],
   "topEntities": [
     { "type": "person|company|...", "name": "实体名", "mentions": 5, "delta": 2 }
   ]
 }
 
-要求：highlights 3-5 条；signals 0-5 条；topEntities 最多 8 个（按 mentions 降序）。`;
+要求：highlights 3-5 条；signals 0-5 条；topEntities 最多 8 个（按 mentions 降序）。highlights 和 signals 的 itemIds 只能引用上面真实存在的内容 id。`;
 
     try {
       const result = await this.chat.chat({
@@ -204,7 +222,11 @@ ${truncate(prevInsight.summary, 300)}`
       return {
         summary: truncate(parsed.summary ?? "", 200),
         highlights: normalizeHighlights(parsed.highlights),
-        signals: normalizeSignals(parsed.signals),
+        signals: normalizeSignals(
+          parsed.signals,
+          new Set(itemDigests.map((item) => item.id)),
+          topic.entityType === "person",
+        ),
         topEntities: normalizeTopEntities(parsed.topEntities, entityFreq),
       };
     } catch (err) {
@@ -266,18 +288,48 @@ function normalizeHighlights(raw: unknown): RadarInsightPayload["highlights"] {
     }));
 }
 
-function normalizeSignals(raw: unknown): RadarInsightPayload["signals"] {
+function normalizeSignals(
+  raw: unknown,
+  allowedItemIds: ReadonlySet<string>,
+  requireEvidenceLinks: boolean,
+): RadarInsightPayload["signals"] {
   if (!Array.isArray(raw)) return [];
   return raw
     .slice(0, 5)
     .filter(
       (s): s is Record<string, unknown> => s !== null && typeof s === "object",
     )
-    .map((s) => ({
-      kind: truncate(String(s["kind"] ?? "unknown"), 60),
-      magnitude: clampMagnitude(s["magnitude"]),
-      evidence: truncate(String(s["evidence"] ?? ""), 100),
-    }));
+    .map((s) => {
+      const itemIds = Array.isArray(s["itemIds"])
+        ? (s["itemIds"] as unknown[])
+            .filter(
+              (id): id is string =>
+                typeof id === "string" && allowedItemIds.has(id),
+            )
+            .slice(0, 10)
+        : [];
+      return {
+        kind: truncate(String(s["kind"] ?? "unknown"), 60),
+        magnitude: clampMagnitude(s["magnitude"]),
+        evidence: truncate(String(s["evidence"] ?? ""), 100),
+        ...(itemIds.length > 0 ? { itemIds } : {}),
+      };
+    })
+    .filter((signal) => !requireEvidenceLinks || signal.itemIds?.length);
+}
+
+export function buildInsightModeInstructions(
+  entityType: string | null,
+  items: Array<{ sourceType: string }>,
+): string {
+  if (entityType !== "person") return "分析模式：主题趋势洞察。";
+  const sourceTypes = [...new Set(items.map((item) => item.sourceType))].sort();
+  return `分析模式：人物（大咖）跨来源洞察。
+- 已覆盖平台：${sourceTypes.join(", ") || "UNKNOWN"}；覆盖少于 2 个平台时必须明确标注“单一来源，不足以交叉验证”。
+- 分别分析：观点变化、公开项目/模型/代码活动、视频表达、时间线与异常信号。
+- 区分本人一手陈述、平台行为指标和第三方转述，不得把推断写成事实。
+- 每个 highlight 与 signal 必须用 itemIds 绑定真实证据；没有证据 id 的信号必须省略。
+- 跨平台一致或矛盾的结论，至少引用来自两个不同 sourceType 的 itemIds。`;
 }
 
 function normalizeTopEntities(

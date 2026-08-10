@@ -42,7 +42,12 @@ describe("RadarS7InsightStage", () => {
             },
           ],
           signals: [
-            { kind: "硬件发布", magnitude: 7, evidence: "Cisco 发布新服务器" },
+            {
+              kind: "硬件发布",
+              magnitude: 7,
+              evidence: "Cisco 发布新服务器",
+              itemIds: ["A"],
+            },
           ],
           topEntities: [
             { type: "company", name: "Cisco", mentions: 3, delta: 1 },
@@ -117,6 +122,14 @@ describe("RadarS7InsightStage", () => {
           publishedAt: new Date("2026-05-20T00:00:00Z"),
           sourceId: "s1",
         })),
+        sources: [
+          {
+            id: "s1",
+            type: "GITHUB",
+            label: "GitHub activity",
+            identifier: "trending",
+          },
+        ],
         relevanceScores:
           opts.relevanceScores ??
           new Map(items.map((x) => [x.id, { score: R + 10 }])),
@@ -234,6 +247,42 @@ describe("RadarS7InsightStage", () => {
       expect(sigs[0].magnitude).toBe(10);
       expect(sigs[1].magnitude).toBe(0);
       expect(sigs[2].magnitude).toBe(5);
+    });
+
+    it("person topic uses creator template and drops claims without evidence itemIds", async () => {
+      chat.chat.mockResolvedValueOnce({
+        content: JSON.stringify({
+          summary: "人物动态",
+          highlights: [{ title: "有证据", itemIds: ["A"], type: "key-event" }],
+          signals: [
+            { kind: "无证据", magnitude: 5, evidence: "推断" },
+            {
+              kind: "有证据",
+              magnitude: 8,
+              evidence: "本人更新项目",
+              itemIds: ["A", "hallucinated"],
+            },
+          ],
+          topEntities: [],
+        }),
+      });
+      const ctx = makeCtx({
+        topic: {
+          id: "topic-1",
+          name: "Ada Example",
+          description: null,
+          entityType: "person",
+          keywords: ["Ada Example"],
+          matchMode: "semantic",
+        },
+      });
+      await stage.run(args, ctx);
+      const prompt = chat.chat.mock.calls[0][0].messages[0].content as string;
+      expect(prompt).toContain("人物（大咖）跨来源洞察");
+      expect(prompt).toContain("GITHUB");
+      expect(ctx.state.insightPayload?.signals).toEqual([
+        expect.objectContaining({ kind: "有证据", itemIds: ["A"] }),
+      ]);
     });
 
     it("topEntities 空 → 由 entityMap 频率兜底（最多 8 个）", async () => {
