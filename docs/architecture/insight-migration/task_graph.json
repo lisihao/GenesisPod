@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project": "genesispod-insight-migration",
-  "status": "active",
+  "status": "phase_1_done",
   "nodes": [
     {
       "id": "G0",
@@ -72,7 +72,7 @@
     {
       "id": "G6",
       "name": "Mac mini 独立部署与无输入访问",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["G5"],
       "acceptance": [
         "fixed SHA",

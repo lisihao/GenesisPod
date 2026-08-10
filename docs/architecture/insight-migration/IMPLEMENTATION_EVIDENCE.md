@@ -33,3 +33,21 @@ GitHub/HF live provider smoke              PASS
 在 Mac mini 的 GenesisPod 固定 SHA 部署、数据库 migration、健康检查和真实 Radar
 运行完成前，不停止旧 solar-harness 定时任务。验收通过后，按精确 label 执行
 `bootout + disable + 可恢复归档`，保留旧代码和历史数据但不再定时运行。
+
+## Mac mini 切换验收
+
+- 固定运行 SHA：`bd6bf6ba5c0ab8a3e645d737aa91c662f497b153`；`previous` 为
+  `41a36637f1abcf106cfe7e0913a23369a7c9c303`。
+- 独立根目录：`/Users/lisihao/Services/GenesisPod`；backend、frontend、
+  ai-service 的实际 cwd 均位于固定 SHA release，活动 launchd 配置不含 Solar 路径。
+- Mac mini loopback health 与 MacBook tunnel health：frontend、backend、AI
+  均为 HTTP 200；MacBook 端口为 13300、13301、15050。
+- GitHub、Hugging Face、YouTube 生产构建真实采集分别返回 5、5、3 条，并带原生
+  provider evidence；架构门禁确认无 solar-harness runtime 引用。
+- 单用户免密：loopback frontend proxy 可创建 ADMIN JWT 会话；Tailscale 直连后端
+  返回 403；全新 Chrome profile 无输入获得 access/refresh token，且未显示密码框。
+- 回滚：三个服务从 `bd6bf6ba5` 切到 `41a36637f` 后健康，再切回
+  `bd6bf6ba5` 后健康且免密会话恢复。
+- 旧任务：13 个 GitHub/HF/YouTube/大咖相关 launchd label 均为 disabled 且未加载；
+  12 份 plist（含遗留 GenesisPod watchdog）可恢复归档在
+  `/Users/lisihao/Services/GenesisPod/evidence/deployments/20260810T225000Z-solar-insight-launchagents-disabled`。
