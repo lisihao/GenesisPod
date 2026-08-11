@@ -1,0 +1,77 @@
+{
+  "id": "genesispod-solar-insight-history-v1",
+  "sprint_id": "genesispod-solar-insight-history-v1",
+  "title": "Solar insight history to GenesisPod Radar",
+  "created_at": "2026-08-10T00:00:00Z",
+  "updated_at": "2026-08-11T01:42:44Z",
+  "nodes": [
+    {
+      "id": "M1",
+      "title": "Source inventory and mapping review",
+      "status": "completed",
+      "task_type": "FINAL_REVIEW",
+      "target_role": "evaluator",
+      "preferred_operator": "mini-claude-opus-evaluator",
+      "preferred_operator_classes": ["Verifier"],
+      "goal": "Review source counts, target mapping, idempotency and rollback guardrails without writing either database.",
+      "depends_on": [],
+      "read_scope": [
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.prd.md",
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.contract.md",
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.importer.cjs"
+      ],
+      "write_scope": [
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.M1-handoff.md"
+      ],
+      "handoff": "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.M1-handoff.md",
+      "execution_note": "Independent Opus review was attempted but its OAuth token had expired; the coordinator completed a read-only contract review and all executable acceptance checks passed.",
+      "acceptance": [
+        "source database remains read-only",
+        "external ids match GenesisPod native collectors",
+        "topics remain paused",
+        "rollback is marker-scoped",
+        "no secrets are printed"
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "Dry-run and source snapshot",
+      "status": "completed",
+      "task_type": "DATA_ANALYSIS",
+      "goal": "Create a consistent source snapshot, checksum it and produce an exact dry-run manifest.",
+      "depends_on": ["M1"],
+      "read_scope": [
+        "/Users/lisihao/.solar/harness/state/tech-hotspot-radar/tech-hotspot-radar.sqlite"
+      ],
+      "write_scope": [
+        "/Users/lisihao/Services/GenesisPod/evidence/migrations/solar-harness-insight-history-v1"
+      ],
+      "evidence": "/Users/lisihao/Services/GenesisPod/evidence/migrations/solar-harness-insight-history-v1/20260811T010915Z/dry-run-snapshot/dry-run-result.json",
+      "acceptance": ["SQLite quick_check ok", "snapshot checksum recorded", "dry-run item count 34395"]
+    },
+    {
+      "id": "M3",
+      "title": "Idempotent production import",
+      "status": "completed",
+      "task_type": "CODE_IMPL",
+      "goal": "Import four historical datasets into migration-scoped GenesisPod Radar topics in batches.",
+      "depends_on": ["M2"],
+      "read_scope": ["M2 snapshot", "GenesisPod Prisma schema"],
+      "write_scope": ["GenesisPod Radar migration topics only"],
+      "evidence": "/Users/lisihao/Services/GenesisPod/evidence/migrations/solar-harness-insight-history-v1/20260811T010915Z/import-resume/migration-result.json",
+      "acceptance": ["4 topics", "253 sources", "34395 canonical items", "all topics paused"]
+    },
+    {
+      "id": "M4",
+      "title": "Post-import verification and closeout",
+      "status": "completed",
+      "task_type": "FINAL_REVIEW",
+      "goal": "Verify counts, evidence samples, transcript/viewpoint preservation, idempotency and rollback artifacts.",
+      "depends_on": ["M3"],
+      "read_scope": ["source snapshot", "GenesisPod migration topics", "migration manifest"],
+      "write_scope": ["migration verification report"],
+      "evidence": "/Users/lisihao/Services/GenesisPod/evidence/migrations/solar-harness-insight-history-v1/20260811T010915Z/verify-final/verification-result.json",
+      "acceptance": ["count parity", "sample evidence present", "second run inserts zero", "health remains ok"]
+    }
+  ]
+}

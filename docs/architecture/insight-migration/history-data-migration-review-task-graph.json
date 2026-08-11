@@ -1,0 +1,38 @@
+{
+  "id": "genesispod-solar-insight-history-review-v1",
+  "sprint_id": "genesispod-solar-insight-history-review-v1",
+  "title": "Review Solar insight history migration",
+  "created_at": "2026-08-11T01:13:00Z",
+  "updated_at": "2026-08-11T01:42:44Z",
+  "nodes": [
+    {
+      "id": "R1",
+      "title": "Read-only migration contract review",
+      "status": "error",
+      "task_type": "FINAL_REVIEW",
+      "target_role": "evaluator",
+      "preferred_operator": "mini-claude-opus-evaluator",
+      "preferred_operator_classes": ["Verifier"],
+      "goal": "Review source counts, target mapping, timestamp normalization, idempotency and marker-scoped rollback without writing either database.",
+      "depends_on": [],
+      "read_scope": [
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.prd.md",
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.contract.md",
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-v1.importer.cjs"
+      ],
+      "write_scope": [
+        "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-review-v1.R1-handoff.md"
+      ],
+      "handoff": "/Users/lisihao/.solar/harness/sprints/genesispod-solar-insight-history-review-v1.R1-handoff.md",
+      "error": "Claude evaluator OAuth access token expired (HTTP 401); no review output was produced and no data was modified by this node.",
+      "fallback": "Coordinator read-only review plus dry-run, production verification, idempotency and health evidence.",
+      "acceptance": [
+        "source database remains read-only",
+        "external ids match GenesisPod collectors",
+        "all migration topics stay paused",
+        "rollback is marker-scoped",
+        "no secrets are printed"
+      ]
+    }
+  ]
+}
