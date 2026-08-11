@@ -3,7 +3,7 @@
   "sprint_id": "genesispod-insight-module-navigation-v1",
   "title": "Promote four insight modules to first-level navigation",
   "created_at": "2026-08-11T00:00:00Z",
-  "updated_at": "2026-08-11T17:39:44Z",
+  "updated_at": "2026-08-11T18:02:28Z",
   "nodes": [
     {
       "id": "N1",
@@ -37,7 +37,7 @@
     {
       "id": "N4",
       "title": "Mac mini deployment",
-      "status": "in_progress",
+      "status": "completed",
       "depends_on": ["N3"],
       "acceptance": [
         "fixed Git SHA",
@@ -48,7 +48,7 @@
     {
       "id": "N5",
       "title": "MacBook route acceptance",
-      "status": "pending",
+      "status": "completed",
       "depends_on": ["N4"],
       "acceptance": [
         "4 routes return 200",
