@@ -37,6 +37,7 @@ import { RadarTopicCard } from '@/components/ai-radar/RadarTopicCard';
 import { CreateRadarTopicModal } from '@/components/ai-radar/CreateRadarTopicModal';
 import { ConfirmDialog } from '@/components/ui/dialogs/ConfirmDialog';
 import { PageHeaderHero } from '@/components/ui/page-header-hero';
+import { isDedicatedInsightTopic } from '@/lib/constants/insight-modules';
 
 const SearchIcon = ({ className }: { className?: string }) => (
   <svg
@@ -71,7 +72,8 @@ export default function AiRadarIndexPage() {
     setError(null);
     try {
       const res = await listTopics({ limit: 60 });
-      setTopics(res.items);
+      // 四类专用洞察已经提升为 /insights/* 一级模块，不在通用 Radar 列表重复展示。
+      setTopics(res.items.filter((topic) => !isDedicatedInsightTopic(topic)));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

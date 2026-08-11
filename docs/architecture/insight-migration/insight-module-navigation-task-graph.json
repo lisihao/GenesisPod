@@ -1,0 +1,60 @@
+{
+  "id": "genesispod-insight-module-navigation-v1",
+  "sprint_id": "genesispod-insight-module-navigation-v1",
+  "title": "Promote four insight modules to first-level navigation",
+  "created_at": "2026-08-11T00:00:00Z",
+  "updated_at": "2026-08-11T17:39:44Z",
+  "nodes": [
+    {
+      "id": "N1",
+      "title": "Inventory and navigation contract",
+      "status": "completed",
+      "depends_on": [],
+      "acceptance": [
+        "navigation SSOT identified",
+        "independent routes fixed",
+        "Radar data boundary retained"
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "Independent module routes and pages",
+      "status": "completed",
+      "depends_on": ["N1"],
+      "acceptance": [
+        "4 top-level nav items",
+        "4 independent pages",
+        "no Radar page embedding"
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "Navigation and page tests",
+      "status": "completed",
+      "depends_on": ["N2"],
+      "acceptance": ["unit tests", "type-check", "production build"]
+    },
+    {
+      "id": "N4",
+      "title": "Mac mini deployment",
+      "status": "in_progress",
+      "depends_on": ["N3"],
+      "acceptance": [
+        "fixed Git SHA",
+        "frontend backend AI health",
+        "rollback pointer"
+      ]
+    },
+    {
+      "id": "N5",
+      "title": "MacBook route acceptance",
+      "status": "pending",
+      "depends_on": ["N4"],
+      "acceptance": [
+        "4 routes return 200",
+        "4 nav labels rendered",
+        "module data visible"
+      ]
+    }
+  ]
+}

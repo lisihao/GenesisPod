@@ -21,9 +21,14 @@ import {
   PieChart,
   PenLine,
   Share2,
+  Github,
+  Bot,
+  Youtube,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/design/module-themes';
+import { INSIGHT_MODULES } from '@/lib/constants/insight-modules';
 
 export interface NavItem {
   href: string;
@@ -88,6 +93,36 @@ export const NAV_GROUPS: NavGroup[] = [
         labelKey: 'nav.myExperts',
         Icon: Users,
         matchPrefix: true,
+      },
+    ],
+  },
+  // 独立洞察频道：四类迁移能力拥有自己的一级入口和页面，不再寄生在 AI Radar。
+  {
+    labelKey: 'nav.sections.insightChannels',
+    items: [
+      {
+        href: INSIGHT_MODULES.github.href,
+        labelKey: INSIGHT_MODULES.github.navLabelKey,
+        Icon: Github,
+        moduleKey: 'radar',
+      },
+      {
+        href: INSIGHT_MODULES.huggingFace.href,
+        labelKey: INSIGHT_MODULES.huggingFace.navLabelKey,
+        Icon: Bot,
+        moduleKey: 'radar',
+      },
+      {
+        href: INSIGHT_MODULES.youtube.href,
+        labelKey: INSIGHT_MODULES.youtube.navLabelKey,
+        Icon: Youtube,
+        moduleKey: 'radar',
+      },
+      {
+        href: INSIGHT_MODULES.creators.href,
+        labelKey: INSIGHT_MODULES.creators.navLabelKey,
+        Icon: UsersRound,
+        moduleKey: 'radar',
       },
     ],
   },

@@ -234,6 +234,7 @@ const ROUTE_MODULE: { prefix: string; key: ModuleKey }[] = [
   { prefix: '/ai-ask', key: 'ask' },
   { prefix: '/explore', key: 'explore' },
   { prefix: '/library', key: 'library' },
+  { prefix: '/insights', key: 'radar' },
   { prefix: '/ai-radar', key: 'radar' },
   { prefix: '/ai-insights', key: 'insights' },
   { prefix: '/ai-research', key: 'research' },

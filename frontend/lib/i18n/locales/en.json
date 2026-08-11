@@ -227,6 +227,10 @@
     "myExperts": "Experts",
     "expertMarket": "Marketplace",
     "aiRadar": "AI Radar",
+    "githubTrends": "GitHub Trends",
+    "huggingFaceInsights": "Hugging Face",
+    "youtubeInsights": "YouTube Insights",
+    "creatorInsights": "Creator Insights",
     "aiInsights": "AI Insights",
     "aiResearch": "AI Research",
     "aiForesight": "AI Foresight",
@@ -265,6 +269,7 @@
       "collabLab": "AI Lab",
       "myAgents": "My Agents",
       "myWorkspace": "My Workspace",
+      "insightChannels": "Insight Channels",
       "discoverMore": "Discover More"
     },
     "myAgentsViewAll": "View all",

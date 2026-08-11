@@ -31,6 +31,8 @@ describe("GenesisPod insight runtime independence", () => {
       path.join(srcRoot, "modules/ai-app/insight"),
       path.join(srcRoot, "modules/ai-engine/content/fetch"),
       path.join(repoRoot, "frontend/app/ai-insights"),
+      path.join(repoRoot, "frontend/app/insights"),
+      path.join(repoRoot, "frontend/components/insight-modules"),
       path.join(repoRoot, "frontend/services/ai-radar"),
     ];
     const violations: string[] = [];

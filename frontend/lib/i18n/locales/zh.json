@@ -227,6 +227,10 @@
     "myExperts": "专家团",
     "expertMarket": "专家市场",
     "aiRadar": "AI 雷达",
+    "githubTrends": "GitHub 趋势",
+    "huggingFaceInsights": "Hugging Face",
+    "youtubeInsights": "YouTube 洞察",
+    "creatorInsights": "大咖洞察",
     "aiInsights": "AI 洞察",
     "aiResearch": "AI 研究",
     "aiForesight": "AI 前瞻",
@@ -265,6 +269,7 @@
       "collabLab": "实验广场",
       "myAgents": "专属 Agent",
       "myWorkspace": "我的工作台",
+      "insightChannels": "洞察频道",
       "discoverMore": "发现更多"
     },
     "myAgentsViewAll": "查看全部",
