@@ -13,7 +13,17 @@ const mocks = vi.hoisted(() => ({
   listFeed: vi.fn(),
 }));
 
+const auth = vi.hoisted(() => ({
+  value: {
+    accessToken: 'test-access-token' as string | null,
+    isLoading: false,
+  },
+}));
+
 vi.mock('@/services/ai-radar/api', () => mocks);
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => auth.value,
+}));
 
 import { InsightModulePage } from '../InsightModulePage';
 
@@ -83,6 +93,10 @@ const item: RadarItem = {
 
 describe('InsightModulePage', () => {
   beforeEach(() => {
+    auth.value = {
+      accessToken: 'test-access-token',
+      isLoading: false,
+    };
     mocks.listTopics.mockReset();
     mocks.listSources.mockReset();
     mocks.listFeed.mockReset();
@@ -114,5 +128,20 @@ describe('InsightModulePage', () => {
     );
     expect(mocks.listSources).not.toHaveBeenCalled();
     expect(mocks.listFeed).not.toHaveBeenCalled();
+  });
+
+  it('waits for local single-user auth before loading module data', async () => {
+    auth.value = { accessToken: null, isLoading: true };
+    const view = render(<InsightModulePage moduleKey="github" />);
+
+    expect(mocks.listTopics).not.toHaveBeenCalled();
+
+    auth.value = {
+      accessToken: 'local-session-access-token',
+      isLoading: false,
+    };
+    view.rerender(<InsightModulePage moduleKey="github" />);
+
+    await waitFor(() => expect(mocks.listTopics).toHaveBeenCalledTimes(1));
   });
 });

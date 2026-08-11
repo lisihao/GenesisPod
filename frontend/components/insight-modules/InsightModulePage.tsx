@@ -16,6 +16,7 @@ import {
 
 import { PageHeaderHero } from '@/components/ui/page-header-hero';
 import { EmptyState } from '@/components/ui/states/EmptyState';
+import { useAuth } from '@/contexts/AuthContext';
 import { listFeed, listSources, listTopics } from '@/services/ai-radar/api';
 import type {
   RadarItem,
@@ -42,6 +43,7 @@ interface InsightModulePageProps {
 }
 
 export function InsightModulePage({ moduleKey }: InsightModulePageProps) {
+  const { accessToken, isLoading: isAuthLoading } = useAuth();
   const config = INSIGHT_MODULES[moduleKey];
   const Icon = MODULE_ICONS[moduleKey];
   const [topic, setTopic] = useState<RadarTopicWithCounts | null>(null);
@@ -94,8 +96,9 @@ export function InsightModulePage({ moduleKey }: InsightModulePageProps) {
   }, [config.searchQuery, config.sourceType, moduleKey]);
 
   useEffect(() => {
+    if (isAuthLoading) return;
     void loadModule();
-  }, [loadModule]);
+  }, [accessToken, isAuthLoading, loadModule]);
 
   const loadMore = async () => {
     if (!topic || !nextCursor || loadingMore) return;
