@@ -29,6 +29,7 @@ import { NotificationModule } from "../../../platform/notifications/notification
 import { NotificationDispatcherModule } from "../../../platform/notifications/dispatcher/notification-dispatcher.module";
 import { MonitoringModule } from "../../../platform/monitoring/monitoring.module";
 import { ContentFetchModule } from "../../../ai-engine/content/fetch/content-fetch.module";
+import { ToolKeyResolverModule } from "../../../platform/credentials/resolution/tool-key-resolver/tool-key-resolver.module";
 
 import { RadarTopicController } from "../api/controller/radar-topic.controller";
 import { RadarSourceController } from "../api/controller/radar-source.controller";
@@ -77,6 +78,8 @@ import { RadarS4RelevanceStage } from "../mission/pipeline/stages/s4-relevance.s
 import { RadarS5QualityStage } from "../mission/pipeline/stages/s5-quality.stage";
 import { RadarS6EntityStage } from "../mission/pipeline/stages/s6-entity.stage";
 import { RadarS7InsightStage } from "../mission/pipeline/stages/s7-insight.stage";
+import { RadarInsightSynthesisService } from "../mission/services/insight/radar-insight-synthesis.service";
+import { RadarAdHocInsightService } from "../mission/services/insight/radar-ad-hoc-insight.service";
 import { RadarS8PersistStage } from "../mission/pipeline/stages/s8-persist.stage";
 import { RadarDiscoveryStage } from "../mission/pipeline/stages/radar-discovery.stage";
 import { RadarGateway } from "../runtime/radar.gateway";
@@ -124,6 +127,8 @@ import { RadarSignalSearchTool } from "../integrations/radar-signal-search.tool"
     NotificationDispatcherModule,
     MonitoringModule,
     ContentFetchModule,
+    // GithubCollector 走 BYOK 取可选 github-token（匿名 Search 配额只有 10 次/分钟）
+    ToolKeyResolverModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -188,6 +193,9 @@ import { RadarSignalSearchTool } from "../integrations/radar-signal-search.tool"
     RadarS5QualityStage,
     RadarS6EntityStage,
     RadarS7InsightStage,
+    // 洞察合成：S7 与用户手动触发的 ad-hoc 分析共用
+    RadarInsightSynthesisService,
+    RadarAdHocInsightService,
     RadarS8PersistStage,
     RadarDiscoveryStage,
     RadarGateway,

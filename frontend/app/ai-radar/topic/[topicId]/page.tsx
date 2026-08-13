@@ -391,6 +391,7 @@ export default function RadarTopicDetailPage() {
     description: topic.description,
     keywords: topic.keywords,
     matchMode: topic.matchMode ?? 'semantic',
+    analysisMode: topic.analysisMode ?? 'auto',
     briefingTime: (topicAsRecord.briefingTime as string) ?? '08:00',
     signalsTarget: ((topicAsRecord.signalsTarget as number) === 5 ? 5 : 3) as
       | 3

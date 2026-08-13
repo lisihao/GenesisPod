@@ -120,6 +120,12 @@ export class RadarS2CollectStage implements RadarStageRunner {
     const rawItems: RadarRawItem[] = [];
     const sourceErrors: Array<{ sourceId: string; error: string }> = [];
     let sourcesFailed = 0;
+    let sourcesThrottled = 0;
+    const emptySources: Array<{
+      sourceId: string;
+      label: string;
+      type: string;
+    }> = [];
 
     for (const r of results) {
       if (ctx.signal.aborted) {
@@ -127,12 +133,32 @@ export class RadarS2CollectStage implements RadarStageRunner {
         throw new Error("aborted_during_collect");
       }
       if (r.error) {
-        sourcesFailed++;
         sourceErrors.push({ sourceId: r.sourceId, error: r.error });
+        if (r.throttled) {
+          // 上游限流不是源故障：既不 markFailure（否则指数 cooldown 累积到
+          // FAILING + 24h），也不 markSuccess（这次确实没拿到数据）。错误仍然
+          // 进 sourceErrors + 单独计数，UI 照常看得见，只是不烧健康度。
+          sourcesThrottled++;
+          this.log.warn(
+            `[${ctx.missionId}] S2 source ${r.sourceId} 被上游限流，跳过健康度标记: ${r.error}`,
+          );
+          continue;
+        }
+        sourcesFailed++;
         await this.health.markFailure(r.sourceId, r.error);
         continue;
       }
       await this.health.markSuccess(r.sourceId);
+      if (r.items.length === 0) {
+        // 调通了但零产出：health 是绿的、没有 error，UI 上和「正常但本期无更新」
+        // 长得一模一样。单次为 0 不判罪（低频源本来就可能没更新），但必须留痕，
+        // 否则像 HF 榜单被窗口筛空那样，能静默空转到没人发现。
+        emptySources.push({
+          sourceId: r.sourceId,
+          label: sourceLabels.get(r.sourceId) ?? r.sourceId,
+          type: r.type,
+        });
+      }
       for (const item of r.items) {
         rawItems.push({
           ...item,
@@ -144,11 +170,21 @@ export class RadarS2CollectStage implements RadarStageRunner {
     ctx.state.rawItems = rawItems;
     ctx.state.metrics.sourcesAttempted = sources.length;
     ctx.state.metrics.sourcesFailed = sourcesFailed;
+    ctx.state.metrics.sourcesThrottled = sourcesThrottled;
+    ctx.state.metrics.emptySources = emptySources;
     ctx.state.metrics.itemsFetched = rawItems.length;
     ctx.state.metrics.sourceErrors = sourceErrors;
 
+    if (emptySources.length > 0) {
+      this.log.warn(
+        `[${ctx.missionId}] S2 ${emptySources.length} 个源调通但零产出: ${emptySources
+          .map((s) => `${s.type}:${s.label}`)
+          .join(", ")}`,
+      );
+    }
+
     this.log.log(
-      `[${ctx.missionId}] S2 collect: sources=${sources.length} failed=${sourcesFailed} items=${rawItems.length}`,
+      `[${ctx.missionId}] S2 collect: sources=${sources.length} failed=${sourcesFailed} throttled=${sourcesThrottled} empty=${emptySources.length} items=${rawItems.length}`,
     );
   }
 }

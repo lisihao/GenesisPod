@@ -1,6 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { RadarSource, RadarSourceType } from "@prisma/client";
-import { CollectContext, ICollector, RawCollectedItem } from "./icollector";
+import {
+  CollectContext,
+  CollectorThrottleError,
+  ICollector,
+  RawCollectedItem,
+} from "./icollector";
 import { RssCollector } from "./rss-collector.service";
 import { YoutubeCollector } from "./youtube-collector.service";
 import { XCollector } from "./x-collector.service";
@@ -13,6 +18,11 @@ export interface CollectResult {
   type: RadarSourceType;
   items: RawCollectedItem[];
   error: string | null;
+  /**
+   * true = 失败原因是上游限流（CollectorThrottleError），不是源本身坏了。
+   * caller 据此跳过 source health 标记，避免瞬时配额抖动触发 24h 冷却。
+   */
+  throttled: boolean;
   /** 单 source 耗时 ms */
   durationMs: number;
 }
@@ -79,6 +89,7 @@ export class CollectorRouter {
         type: source.type,
         items: [],
         error: `Unsupported source type: ${source.type}`,
+        throttled: false,
         durationMs: 0,
       };
     }
@@ -90,16 +101,23 @@ export class CollectorRouter {
         type: source.type,
         items,
         error: null,
+        throttled: false,
         durationMs: Date.now() - start,
       };
     } catch (err) {
       const msg = (err as Error).message || String(err);
-      this.log.warn(`Collector ${source.type}#${source.id} failed: ${msg}`);
+      const throttled = err instanceof CollectorThrottleError;
+      this.log.warn(
+        `Collector ${source.type}#${source.id} ${
+          throttled ? "throttled" : "failed"
+        }: ${msg}`,
+      );
       return {
         sourceId: source.id,
         type: source.type,
         items: [],
         error: msg,
+        throttled,
         durationMs: Date.now() - start,
       };
     }

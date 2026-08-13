@@ -7954,6 +7954,38 @@
         "moreSkipped": "还有 {{count}} 条...",
         "doneWithSkipped": "已导入 {{created}} 个源，跳过 {{skipped}} 个：",
         "done": "已导入 {{count}} 个数据源"
+      },
+      "identifierHint": {
+        "github": "trending、owner/repo 或 GitHub 仓库搜索查询",
+        "huggingFace": "models、papers、models:<query> 或 papers:<query>"
+      }
+    },
+    "itemsPanel": {
+      "searchPlaceholder": "搜索标题或作者",
+      "selectedCount": "已选 {{count}} 条",
+      "selectionFull": "已达单次上限 {{max}} 条",
+      "clearSelection": "清空",
+      "analyzeSelected": "分析选中",
+      "analyzeFailed": "分析失败：{{message}}",
+      "resultTitle": "本次分析（{{count}} 条内容）",
+      "selectItem": "选择：{{title}}"
+    },
+    "analysisMode": {
+      "label": "分析模式",
+      "auto": {
+        "label": "自动分析（默认）",
+        "hint": "每次定时采集后自动跑质量评分、实体抽取和洞察，并生成每日精选。"
+      },
+      "on-demand": {
+        "label": "只采集，按需分析",
+        "hint": "定时只采集内容（YouTube 含字幕）并打相关性分，不自动跑洞察、不排每日精选。分析由你在「已收录信号」里勾选内容后手动触发。"
+      }
+    },
+    "stageDrawer": {
+      "emptySources": {
+        "title": "调通但零产出（{{count}} 个源）",
+        "hint": "这些源本次没有报错，只是一条都没抓到。偶发正常（低频源本期没更新）；连续多次为 0 要查采集条件是否把内容全筛掉了。",
+        "more": "…还有 {{count}} 个"
       }
     }
   },

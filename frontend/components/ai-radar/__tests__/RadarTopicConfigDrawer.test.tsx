@@ -40,6 +40,7 @@ const BASE_TOPIC: RadarTopicConfigDrawerTopic = {
   description: null,
   keywords: ['AI', '机器学习'],
   matchMode: 'semantic',
+  analysisMode: 'auto',
   briefingTime: '08:00',
   signalsTarget: 3,
   signalTypes: ['turning_point', 'trend_acceleration'],

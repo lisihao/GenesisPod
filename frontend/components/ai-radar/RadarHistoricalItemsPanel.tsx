@@ -24,28 +24,47 @@ import {
   ChevronUp,
   ExternalLink,
   Loader2,
+  Search,
+  Sparkles,
 } from 'lucide-react';
 
-import { listFeed } from '@/services/ai-radar/api';
+import { useTranslation } from '@/lib/i18n';
+import { analyzeItems, listFeed } from '@/services/ai-radar/api';
 import { EmptyState } from '@/components/ui/states/EmptyState';
-import type { RadarItem } from '@/services/ai-radar/types';
+import type { AdHocInsightResult, RadarItem } from '@/services/ai-radar/types';
+
+/** 与后端 AD_HOC_MAX_ITEMS 对齐：超了后端会 400，不如在这里就拦住 */
+const MAX_SELECTED = 30;
 
 interface Props {
   topicId: string;
 }
 
 export function RadarHistoricalItemsPanel({ topicId }: Props) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<RadarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [acceptedOnly, setAcceptedOnly] = useState(true);
+  // 搜索框即时值 vs 真正发请求的值：不 debounce 会每敲一个字打一次接口
+  const [queryInput, setQueryInput] = useState('');
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [result, setResult] = useState<AdHocInsightResult | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(queryInput), 300);
+    return () => clearTimeout(timer);
+  }, [queryInput]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listFeed(topicId, { acceptedOnly, limit: 30 })
+    listFeed(topicId, { acceptedOnly, q: query || undefined, limit: 30 })
       .then((resp) => {
         if (cancelled) return;
         setItems(resp.items);
@@ -61,9 +80,32 @@ export function RadarHistoricalItemsPanel({ topicId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [topicId, acceptedOnly]);
+  }, [topicId, acceptedOnly, query]);
 
   const acceptedCount = items.filter((i) => i.accepted).length;
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < MAX_SELECTED) next.add(id);
+      return next;
+    });
+  }
+
+  async function runAnalysis() {
+    if (selected.size === 0 || analyzing) return;
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    setResult(null);
+    try {
+      setResult(await analyzeItems(topicId, [...selected]));
+    } catch (e) {
+      setAnalyzeError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   return (
     <section className="mt-6 rounded-xl border border-gray-200 bg-white">
@@ -126,6 +168,18 @@ export function RadarHistoricalItemsPanel({ topicId }: Props) {
             </div>
           </div>
 
+          {/* 搜索：标题 / 作者。后端不搜字幕正文（无全文索引时等于全表扫长文本） */}
+          <div className="mb-3 flex items-center gap-2 rounded-md border border-gray-200 px-2 py-1.5 focus-within:border-violet-300">
+            <Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+            <input
+              type="text"
+              value={queryInput}
+              onChange={(e) => setQueryInput(e.target.value)}
+              placeholder={t('radar.itemsPanel.searchPlaceholder')}
+              className="w-full bg-transparent text-xs text-gray-700 outline-none placeholder:text-gray-400"
+            />
+          </div>
+
           {loading ? (
             <div className="flex items-center justify-center py-8 text-sm text-gray-400">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -149,23 +203,148 @@ export function RadarHistoricalItemsPanel({ topicId }: Props) {
           ) : (
             <ul className="flex flex-col gap-2">
               {items.map((item) => (
-                <HistoricalItemRow key={item.id} item={item} />
+                <HistoricalItemRow
+                  key={item.id}
+                  item={item}
+                  selected={selected.has(item.id)}
+                  disabled={
+                    !selected.has(item.id) && selected.size >= MAX_SELECTED
+                  }
+                  onToggle={() => toggleSelected(item.id)}
+                />
               ))}
             </ul>
           )}
+
+          {selected.size > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-violet-200 bg-violet-50 px-3 py-2">
+              <span className="text-xs font-medium text-violet-800">
+                {t('radar.itemsPanel.selectedCount', { count: selected.size })}
+              </span>
+              {selected.size >= MAX_SELECTED && (
+                <span className="text-[11px] text-violet-600">
+                  {t('radar.itemsPanel.selectionFull', { max: MAX_SELECTED })}
+                </span>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="rounded px-2 py-1 text-xs text-violet-700 hover:bg-violet-100"
+                >
+                  {t('radar.itemsPanel.clearSelection')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runAnalysis()}
+                  disabled={analyzing}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-60"
+                >
+                  {analyzing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {t('radar.itemsPanel.analyzeSelected')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {analyzeError && (
+            <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+              <AlertCircle className="mr-1 inline-block h-3 w-3" />
+              {t('radar.itemsPanel.analyzeFailed', { message: analyzeError })}
+            </div>
+          )}
+
+          {result && <AdHocResultPanel result={result} />}
         </div>
       )}
     </section>
   );
 }
 
-function HistoricalItemRow({ item }: { item: RadarItem }) {
+/**
+ * 按需分析结果。与定时洞察同构（summary / highlights / signals），
+ * 差别只是范围由用户选集界定。
+ */
+function AdHocResultPanel({ result }: { result: AdHocInsightResult }) {
+  const { t } = useTranslation();
+  return (
+    <section className="mt-3 rounded-lg border border-violet-200 bg-white p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-violet-600" />
+        <h4 className="text-sm font-semibold text-gray-800">
+          {t('radar.itemsPanel.resultTitle', { count: result.itemCount })}
+        </h4>
+      </div>
+      <p className="text-xs leading-relaxed text-gray-700">{result.summary}</p>
+
+      {result.highlights.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1">
+          {result.highlights.map((h, i) => (
+            <li key={i} className="text-xs text-gray-600">
+              <span className="mr-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">
+                {h.type}
+              </span>
+              {h.title}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {result.signals.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1 border-t border-gray-100 pt-2">
+          {result.signals.map((sig, i) => (
+            <li key={i} className="text-xs text-gray-600">
+              <span className="font-medium text-gray-800">{sig.kind}</span>
+              <span className="font-mono ml-1 text-[10px] text-violet-700">
+                {sig.magnitude}/10
+              </span>
+              <span className="ml-1">— {sig.evidence}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function HistoricalItemRow({
+  item,
+  selected,
+  disabled,
+  onToggle,
+}: {
+  item: RadarItem;
+  selected: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation();
   const date = formatDate(item.publishedAt);
   const sourceLabel = item.source?.label ?? item.source?.identifier ?? '未知源';
 
   return (
-    <li className="rounded-lg border border-gray-100 bg-gray-50/40 px-3 py-2">
+    <li
+      className={`rounded-lg border px-3 py-2 ${
+        selected
+          ? 'border-violet-300 bg-violet-50/60'
+          : 'border-gray-100 bg-gray-50/40'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          disabled={disabled}
+          onChange={onToggle}
+          aria-label={t('radar.itemsPanel.selectItem', {
+            title: item.title ?? '',
+          })}
+          className="mt-1 h-3.5 w-3.5 flex-shrink-0 accent-violet-600 disabled:opacity-40"
+        />
         <div className="min-w-0 flex-1">
           {item.url ? (
             <a

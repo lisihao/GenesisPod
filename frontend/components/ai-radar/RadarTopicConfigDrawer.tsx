@@ -7,6 +7,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { RadarSourceList } from './RadarSourceList';
 import type {
+  RadarAnalysisMode,
   RadarEntityType,
   RadarMatchMode,
   RadarSource,
@@ -33,6 +34,7 @@ export interface RadarTopicConfigDrawerTopic {
   } | null;
   refreshCron: string;
   entityType: string | null;
+  analysisMode: RadarAnalysisMode;
 }
 
 export interface RadarTopicConfigDrawerProps {
@@ -617,6 +619,44 @@ function AdvancedTab({
           placeholder="0 */6 * * *"
         />
         <p className="mt-1 text-xs text-gray-400">标准 5 段 cron 表达式</p>
+      </div>
+
+      {/* 分析模式 */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+          {t('radar.analysisMode.label')}
+        </label>
+        <div className="space-y-1.5">
+          {(['auto', 'on-demand'] as const).map((mode) => {
+            const checked = draft.analysisMode === mode;
+            return (
+              <label
+                key={mode}
+                className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 ${
+                  checked
+                    ? 'border-cyan-300 bg-cyan-50'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="analysisMode"
+                  checked={checked}
+                  onChange={() => onChange({ analysisMode: mode })}
+                  className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-800">
+                    {t(`radar.analysisMode.${mode}.label`)}
+                  </span>
+                  <span className="block text-xs text-gray-500">
+                    {t(`radar.analysisMode.${mode}.hint`)}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
       </div>
 
       {/* 对象类型 */}

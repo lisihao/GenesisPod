@@ -1,3 +1,8 @@
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { isAbsolute, join } from "node:path";
+import { promisify } from "node:util";
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { SystemSettingService } from "@/common/settings/system-setting.service";
@@ -41,8 +46,20 @@ interface SupadataResponse {
   availableLangs: string[];
 }
 
+interface YtDlpJson3Event {
+  tStartMs?: number;
+  dDurationMs?: number;
+  segs?: Array<{ utf8?: string }>;
+}
+
+interface YtDlpJson3Document {
+  events?: YtDlpJson3Event[];
+}
+
 // Cache duration: 1 year (YouTube subtitles rarely change)
 const CACHE_DURATION_MS = 365 * 24 * 60 * 60 * 1000;
+const YT_DLP_TIMEOUT_MS = 20_000;
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class YoutubeService {
@@ -70,6 +87,9 @@ export class YoutubeService {
         this.logger.warn(
           "Supadata API key not configured - using fallback transcript methods only. Configure in Settings > External API > YouTube",
         );
+      }
+      if (this.getYtDlpPath()) {
+        this.logger.log("Local yt-dlp transcript provider enabled");
       }
     } catch (error) {
       this.logger.error("Failed to initialize YouTube client:", error);
@@ -172,25 +192,38 @@ export class YoutubeService {
     }
 
     // Strategy 1: Try FREE methods first (to minimize API costs)
-    // Order: timedtext API > youtube-transcript npm > youtubei.js > external fallback
+    // Order: local yt-dlp > timedtext API > youtube-transcript npm > youtubei.js > external fallback
     let transcriptSegments: TranscriptSegment[] = [];
     let title: string | null = null;
 
-    // 1a. Try YouTube's timedtext API (free, direct from YouTube)
-    this.logger.debug(`Trying timedtext API for ${videoId}`);
-    const timedTextTranscript = await this.fetchTranscriptTimedText(
-      videoId,
-      lang,
-    );
-    if (timedTextTranscript && timedTextTranscript.segments.length > 1) {
-      transcriptSegments = timedTextTranscript.segments;
-      title = timedTextTranscript.title;
+    // 1a. Mac mini/local deployments can use the installed yt-dlp binary.
+    // It speaks YouTube's current player protocol and avoids the stale npm/parser paths.
+    const ytDlpTranscript = await this.fetchTranscriptYtDlp(videoId, lang);
+    if (ytDlpTranscript && ytDlpTranscript.segments.length > 1) {
+      transcriptSegments = ytDlpTranscript.segments;
+      title = ytDlpTranscript.title;
       this.logger.log(
-        `[FREE] Used YouTube timedtext API for ${videoId}, segments=${transcriptSegments.length}`,
+        `[FREE] Used local yt-dlp for ${videoId}, segments=${transcriptSegments.length}`,
       );
     }
 
-    // 1b. Try youtube-transcript npm package (free)
+    // 1b. Try YouTube's timedtext API (free, direct from YouTube)
+    if (transcriptSegments.length === 0) {
+      this.logger.debug(`Trying timedtext API for ${videoId}`);
+      const timedTextTranscript = await this.fetchTranscriptTimedText(
+        videoId,
+        lang,
+      );
+      if (timedTextTranscript && timedTextTranscript.segments.length > 1) {
+        transcriptSegments = timedTextTranscript.segments;
+        title = timedTextTranscript.title;
+        this.logger.log(
+          `[FREE] Used YouTube timedtext API for ${videoId}, segments=${transcriptSegments.length}`,
+        );
+      }
+    }
+
+    // 1c. Try youtube-transcript npm package (free)
     if (transcriptSegments.length === 0) {
       this.logger.debug(`Trying youtube-transcript npm for ${videoId}`);
       const npmTranscript = await this.fetchTranscriptNpm(videoId, lang);
@@ -203,7 +236,7 @@ export class YoutubeService {
       }
     }
 
-    // 1c. Try youtubei.js (free, but often blocked on cloud and has frequent parsing errors)
+    // 1d. Try youtubei.js (free, but often blocked on cloud and has frequent parsing errors)
     // Skip in production/cloud environments due to IP blocking and API format changes
     const isCloudEnvironment =
       process.env.NODE_ENV === "production" ||
@@ -261,7 +294,7 @@ export class YoutubeService {
       );
     }
 
-    // 1d. Try external fallback API (free)
+    // 1e. Try external fallback API (free)
     if (transcriptSegments.length === 0) {
       this.logger.debug(`Trying external fallback for ${videoId}`);
       const fallback = await this.fetchTranscriptFallback(videoId, lang);
@@ -700,6 +733,134 @@ export class YoutubeService {
       );
       return null;
     }
+  }
+
+  private getYtDlpPath(): string | null {
+    const configuredPath = process.env.YTDLP_PATH?.trim();
+    return configuredPath && isAbsolute(configuredPath)
+      ? configuredPath
+      : null;
+  }
+
+  /**
+   * Fetch timestamped JSON3 subtitles with the local yt-dlp binary.
+   *
+   * The binary is opt-in through an absolute YTDLP_PATH. execFile is used
+   * without a shell and the video id is validated before it reaches argv.
+   */
+  private async fetchTranscriptYtDlp(
+    videoId: string,
+    preferredLang: string,
+  ): Promise<{
+    segments: TranscriptSegment[];
+    title: string | null;
+  } | null> {
+    const binary = this.getYtDlpPath();
+    if (!binary || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+
+    const languages = Array.from(
+      new Set(
+        [
+          preferredLang,
+          preferredLang.startsWith("zh") ? "zh-Hans" : null,
+          preferredLang.startsWith("zh") ? "zh-Hant" : null,
+          "en",
+        ].filter((value): value is string => Boolean(value)),
+      ),
+    );
+    const workDir = await mkdtemp(join(tmpdir(), "genesispod-ytdlp-"));
+
+    try {
+      const { stdout } = await execFileAsync(
+        binary,
+        [
+          "--skip-download",
+          "--write-subs",
+          "--write-auto-subs",
+          "--sub-langs",
+          languages.join(","),
+          "--sub-format",
+          "json3",
+          "--socket-timeout",
+          "10",
+          "--no-warnings",
+          "--no-playlist",
+          "--print",
+          "title=%(title)s",
+          "-o",
+          join(workDir, "%(id)s.%(ext)s"),
+          "--",
+          `https://www.youtube.com/watch?v=${videoId}`,
+        ],
+        {
+          encoding: "utf8",
+          timeout: YT_DLP_TIMEOUT_MS,
+          maxBuffer: 1024 * 1024,
+        },
+      );
+
+      const files = (await readdir(workDir)).filter((file) =>
+        file.endsWith(".json3"),
+      );
+      const selectedFile =
+        languages
+          .map((language) =>
+            files.find((file) => file.endsWith(`.${language}.json3`)),
+          )
+          .find((file): file is string => Boolean(file)) ?? files[0];
+      if (!selectedFile) return null;
+
+      const raw = await readFile(join(workDir, selectedFile), "utf8");
+      const segments = this.parseYtDlpJson3(raw);
+      if (segments.length === 0) return null;
+      const titleLine = String(stdout)
+        .split(/\r?\n/)
+        .find((line) => line.startsWith("title="));
+
+      return {
+        segments,
+        title: titleLine?.slice("title=".length).trim() || null,
+      };
+    } catch (error) {
+      this.logger.debug(
+        `Local yt-dlp failed for ${videoId}: ${(error as Error).message}`,
+      );
+      return null;
+    } finally {
+      await rm(workDir, { recursive: true, force: true }).catch((error) => {
+        this.logger.debug(`Failed to clean yt-dlp temp directory: ${error}`);
+      });
+    }
+  }
+
+  private parseYtDlpJson3(raw: string): TranscriptSegment[] {
+    let document: YtDlpJson3Document;
+    try {
+      document = JSON.parse(raw) as YtDlpJson3Document;
+    } catch {
+      return [];
+    }
+
+    return (document.events ?? [])
+      .map((event): TranscriptSegment | null => {
+        const text = (event.segs ?? [])
+          .map((segment) => segment.utf8 ?? "")
+          .join("")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!text) return null;
+        const startMs = Number(event.tStartMs ?? 0);
+        const durationMs = Number(event.dDurationMs ?? 0);
+        if (!Number.isFinite(startMs) || !Number.isFinite(durationMs)) {
+          return null;
+        }
+        return {
+          text,
+          start: Math.max(0, startMs) / 1000,
+          duration: Math.max(0, durationMs) / 1000,
+        };
+      })
+      .filter((segment): segment is TranscriptSegment => segment !== null);
   }
 
   private async fetchTranscriptNpm(

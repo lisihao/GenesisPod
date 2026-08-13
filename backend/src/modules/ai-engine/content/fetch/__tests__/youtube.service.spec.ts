@@ -1106,6 +1106,33 @@ describe("YoutubeService", () => {
     });
   });
 
+  // ─── getTranscript – local yt-dlp fallback ────────────────────────────────
+
+  describe("getTranscript – local yt-dlp fallback", () => {
+    it("uses the native yt-dlp provider before the slower legacy network fallbacks", async () => {
+      const ytDlpProvider = service as unknown as {
+        fetchTranscriptYtDlp: jest.Mock;
+      };
+      const ytDlpSpy = jest
+        .spyOn(ytDlpProvider, "fetchTranscriptYtDlp")
+        .mockResolvedValue({
+          segments: [
+            { text: "First sentence", start: 0, duration: 1.5 },
+            { text: "Second sentence", start: 1.5, duration: 2 },
+          ],
+          title: "Local yt-dlp video",
+        });
+      mockPrismaService.youTubeTranscriptCache.upsert.mockResolvedValue({});
+
+      const result = await service.getTranscript("ytDlp000001", "en");
+
+      expect(ytDlpSpy).toHaveBeenCalledWith("ytDlp000001", "en");
+      expect(result.title).toBe("Local yt-dlp video");
+      expect(result.transcript).toHaveLength(2);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
   // ─── getTranscript – cloud environment handling ───────────────────────────────
 
   describe("getTranscript – cloud environment", () => {

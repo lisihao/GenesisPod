@@ -1,6 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { RadarSource } from "@prisma/client";
-import { CollectContext, ICollector, RawCollectedItem } from "./icollector";
+import {
+  CollectContext,
+  CollectorThrottleError,
+  ICollector,
+  RawCollectedItem,
+} from "./icollector";
 import { computeContentHash } from "./hash.util";
 
 type HuggingFaceKind = "models" | "papers";
@@ -77,9 +82,14 @@ export class HuggingFaceCollector implements ICollector {
         : filteredPayload.map((entry) =>
             this.paperItem(entry as HuggingFaceDailyPaper),
           );
+    // 刻意不按 ctx.since 过滤：models 的时间戳是「模型创建时间」（默认响应不返回
+    // lastModified），papers 的是「arXiv 首发日」——都不是「本次才出现在榜上」。
+    // 用它当增量窗口会把榜单筛空：实测 trending top-20 在定时档（since =
+    // lastRunAt-5min）只剩 models 1 条 / papers 0 条，且不报错，源健康度还是绿的。
+    // 榜单类源的增量语义交给 S3 的 (topicId, externalId) dedupe——这与 S1 把手动
+    // 窗口放宽到 30 天时依赖 dedupe 的理由是同一条。
     const collected = items
       .filter((item): item is RawCollectedItem => item !== null)
-      .filter((item) => item.publishedAt > ctx.since)
       .slice(0, ctx.perSourceLimit);
     this.log.debug(
       `Hugging Face ${kind}:${query} -> ${collected.length} items`,
@@ -109,6 +119,9 @@ export class HuggingFaceCollector implements ICollector {
         },
       });
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new CollectorThrottleError("Hugging Face API 429");
+        }
         throw new Error(`Hugging Face API ${response.status}`);
       }
       return response.json();

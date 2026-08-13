@@ -82,6 +82,8 @@ export interface RadarTopic {
   keywords: string[];
   matchMode: RadarMatchMode;
   refreshCron: string;
+  /** auto = 定时跑完整分析；on-demand = 只采集，分析由用户勾选内容触发 */
+  analysisMode: RadarAnalysisMode;
   status: RadarTopicStatus;
   nextDueAt: string | null;
   lastRunAt: string | null;
@@ -168,10 +170,18 @@ export interface RadarInsightTopEntity {
   delta?: number;
 }
 
+export type RadarAnalysisMode = 'auto' | 'on-demand';
+
+/** scheduled = 定时周期洞察；ad-hoc = 用户勾选一批内容手动触发的分析 */
+export type RadarInsightKind = 'scheduled' | 'ad-hoc';
+
 export interface RadarInsight {
   id: string;
   topicId: string;
   runId: string | null;
+  kind: RadarInsightKind;
+  /** 仅 ad-hoc：本次分析选中的 item id */
+  itemIds: string[] | null;
   periodFrom: string;
   periodTo: string;
   summary: string;
@@ -226,6 +236,10 @@ export interface RadarRun {
     sourcesAttempted?: number;
     sourcesFailed?: number;
     sourceErrors?: Array<{ sourceId: string; error: string }>;
+    /** S2：因上游限流跳过的源数（不烧 source health，下个 tick 自然重试） */
+    sourcesThrottled?: number;
+    /** S2：调通了但零产出的源——health 绿、无 error，只能靠这里看见 */
+    emptySources?: Array<{ sourceId: string; label: string; type: string }>;
     /** R10：S8 写入的阈值快照 */
     thresholds?: {
       relevanceGate: number;
@@ -266,6 +280,7 @@ export interface UpdateRadarTopicInput {
   keywords?: string[];
   matchMode?: RadarMatchMode;
   refreshCron?: string;
+  analysisMode?: RadarAnalysisMode;
 }
 
 export interface CreateRadarSourceInput {
@@ -298,3 +313,15 @@ export interface CancelRunResponse {
 // 2026-05-17 R3 评审：原 `RefreshRunSummary` 是 @deprecated 旧 sync-mode 类型
 // 但全仓 0 consumer (grep import 命中 0)，按 YAGNI 直接删除以减少类型噪音。
 // 新刷新链路统一用 TriggerRefreshResponse + ws 推进度。
+
+/** POST /topics/:id/insights/analyze 的返回 */
+export interface AdHocInsightResult {
+  insightId: string;
+  /** 实际参与分析的条数（不属于该主题的 id 会被剔除，可能少于勾选数） */
+  itemCount: number;
+  summary: string;
+  highlights: RadarInsightHighlight[];
+  signals: RadarInsightSignal[];
+  topEntities: RadarInsightTopEntity[];
+  createdAt: string;
+}

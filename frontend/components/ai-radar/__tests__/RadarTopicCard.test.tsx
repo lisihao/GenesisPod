@@ -37,6 +37,7 @@ function makeTopic(
     keywords: ['gpt-5', 'openai'],
     matchMode: 'semantic',
     refreshCron: '0 */6 * * *',
+    analysisMode: 'auto' as const,
     status: 'ACTIVE',
     nextDueAt: null,
     lastRunAt: '2026-05-15T10:00:00Z',

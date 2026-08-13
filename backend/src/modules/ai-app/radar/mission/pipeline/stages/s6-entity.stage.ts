@@ -18,6 +18,8 @@ import {
   RADAR_PIPELINE_DEFAULTS,
   RADAR_MAX_ENTITIES_PER_ITEM,
 } from "../../../runtime/radar.constants";
+import { isOnDemandAnalysis } from "../../../runtime/analysis-mode";
+import { recordSkippedStage } from "./radar-stage-types";
 import type {
   RadarExtractedEntity,
   RadarExtractedEntityKind,
@@ -60,6 +62,15 @@ export class RadarS6EntityStage implements RadarStageRunner {
     const newItemIds = ctx.state.newItemIds ?? [];
     const uniqueItems = ctx.state.uniqueItems ?? [];
     const qualityScores = ctx.state.qualityScores ?? new Map();
+
+    if (isOnDemandAnalysis(ctx.state.topic)) {
+      ctx.state.entityMap = new Map();
+      recordSkippedStage(ctx, "s6-entity");
+      this.log.log(
+        `[${ctx.missionId}] S6 entity: topic analysisMode=on-demand，跳过自动实体抽取`,
+      );
+      return;
+    }
 
     if (newItemIds.length === 0 || uniqueItems.length === 0) {
       ctx.state.entityMap = new Map();

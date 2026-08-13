@@ -32,10 +32,26 @@ export interface CollectContext {
 }
 
 /**
+ * 上游限流（HTTP 429 / GitHub 403 + `x-ratelimit-remaining: 0`）。
+ *
+ * 必须与「源坏了」区分开：SourceHealthService.markFailure 是指数 cooldown，
+ * 连续 5 次就把源打成 FAILING + 24h 冷却。GitHub 匿名 Search 配额只有 10 次/分钟，
+ * 同一个 cron tick 上几个源并发就能撞上——把瞬时限流记成源故障，会让一次配额抖动
+ * 停掉这个源一整天。S2 见到 throttled 只记录、不计健康度，等下个 tick 自然重试。
+ */
+export class CollectorThrottleError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CollectorThrottleError";
+  }
+}
+
+/**
  * Collector 接口 —— 每种 RadarSourceType 一个实现。
  *
  * 契约：
  * 1. 单 source 失败 throw → CollectorRouter 捕获并标记 source health
+ *    （上游限流请 throw CollectorThrottleError，见上）
  * 2. 不直接写 DB，只返回 RawCollectedItem[]
  * 3. 返回为空数组合法（表示无新数据）
  * 4. 必须按 ctx.perSourceLimit 截断

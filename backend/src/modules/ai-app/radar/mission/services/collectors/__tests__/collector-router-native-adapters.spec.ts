@@ -19,14 +19,18 @@ describe("CollectorRouter native insight adapters", () => {
   afterEach(() => jest.restoreAllMocks());
 
   it("routes GitHub and Hugging Face through the shared Radar fan-out", async () => {
-    jest
-      .spyOn(global, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(githubFixture), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(modelFixture), { status: 200 }),
+    // 按 URL 分发，不按调用顺序：fanOut 是并发的，两个 collector 谁先摸到 fetch
+    // 取决于各自第一个 await 落在哪（GithubCollector 现在会先 await 取 BYOK token），
+    // 用 mockResolvedValueOnce 排队会让 fixture 串门。
+    jest.spyOn(global, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      const body = url.includes("api.github.com")
+        ? githubFixture
+        : modelFixture;
+      return Promise.resolve(
+        new Response(JSON.stringify(body), { status: 200 }),
       );
+    });
     const router = new CollectorRouter(
       unused as never,
       unused as never,

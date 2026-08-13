@@ -677,9 +677,9 @@ function AddSourceForm({
               {type === 'YOUTUBE'
                 ? 'channelId (UC...) 或 youtube.com URL'
                 : type === 'GITHUB'
-                  ? 'trending、owner/repo 或 GitHub 仓库搜索查询'
+                  ? t('radar.sourceList.identifierHint.github')
                   : type === 'HUGGING_FACE'
-                    ? 'models、papers、models:<query> 或 papers:<query>'
+                    ? t('radar.sourceList.identifierHint.huggingFace')
                     : type === 'RSS'
                       ? 'RSS feed URL（公开免费，不要 paywall）'
                       : '列表页 URL（config.listSelector 在后台配）'}

@@ -48,7 +48,10 @@ const ParserCtor: ParserCtor = ((
  *
  * 兜底策略（PR-R2 仅启用 RSS 路径）：
  * - 用户配 YT Data API key (Secret SOCIAL_YOUTUBE) → PR-R4 接入 channel.search?order=date
- * - 字幕：仅当 source.config.fetchTranscript === true 时调 YoutubeService（PR-R3 启用）
+ * - 字幕：默认开启，`source.config.fetchTranscript === false` 才关。
+ *   （原先默认关，而只有前端「单条添加」表单会写 fetchTranscript:true——批量导入
+ *   和 discovery 入库的号一律没有 config，大咖洞察实际跑在「无字幕」状态。
+ *   开销可控：只对通过 since 窗口的新视频取，且 YouTubeTranscriptCache 兜底。）
  *
  * identifier 接受：
  * - 24 位 channelId (UC...)
@@ -223,12 +226,12 @@ export class YoutubeCollector implements ICollector {
     transcriptMinChars: number;
   } {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return { fetchTranscript: false, transcriptMinChars: 200 };
+      return { fetchTranscript: true, transcriptMinChars: 200 };
     }
     const config = value as Record<string, unknown>;
     const rawMin = config.transcriptMinChars;
     return {
-      fetchTranscript: config.fetchTranscript === true,
+      fetchTranscript: config.fetchTranscript !== false,
       transcriptMinChars:
         typeof rawMin === "number" && Number.isFinite(rawMin)
           ? Math.min(10_000, Math.max(100, Math.floor(rawMin)))

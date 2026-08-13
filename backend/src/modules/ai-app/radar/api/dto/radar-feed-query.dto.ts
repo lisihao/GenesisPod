@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from "class-validator";
 import { RadarSourceTypeDto } from "./create-radar-source.dto";
@@ -42,6 +43,17 @@ export class RadarFeedQueryDto {
   @Min(1)
   @Max(200)
   limit?: number;
+
+  /**
+   * 关键词：对 title / author 做大小写不敏感包含匹配。
+   *
+   * 刻意不搜正文：YouTube 源的 content 是整篇字幕，ILIKE '%kw%' 在没有全文索引
+   * 的情况下等于全表扫描长文本。字幕检索需要 tsvector + GIN，单独立项。
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  q?: string;
 
   @IsOptional()
   @IsString()

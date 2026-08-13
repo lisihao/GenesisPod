@@ -15,6 +15,8 @@ import { AIModelType } from "@prisma/client";
 import { AiChatService } from "@/modules/ai-engine/facade";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { RADAR_PIPELINE_DEFAULTS } from "../../../runtime/radar.constants";
+import { isOnDemandAnalysis } from "../../../runtime/analysis-mode";
+import { recordSkippedStage } from "./radar-stage-types";
 import type {
   RadarMissionContext,
   RadarStageHookArgs,
@@ -42,6 +44,15 @@ export class RadarS5QualityStage implements RadarStageRunner {
     const newItemIds = ctx.state.newItemIds ?? [];
     const uniqueItems = ctx.state.uniqueItems ?? [];
     const relevanceScores = ctx.state.relevanceScores ?? new Map();
+
+    if (isOnDemandAnalysis(ctx.state.topic)) {
+      ctx.state.qualityScores = new Map();
+      recordSkippedStage(ctx, "s5-quality");
+      this.log.log(
+        `[${ctx.missionId}] S5 quality: topic analysisMode=on-demand，跳过自动质量评分`,
+      );
+      return;
+    }
 
     if (newItemIds.length === 0 || uniqueItems.length === 0) {
       ctx.state.qualityScores = new Map();

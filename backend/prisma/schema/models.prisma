@@ -10663,6 +10663,10 @@ model RadarTopic {
   matchMode   String            @default("semantic") @map("match_mode") @db.VarChar(10)
   /// cron 表达式，默认每 6 小时
   refreshCron String            @default("0 */6 * * *") @map("refresh_cron") @db.VarChar(60)
+  /// 分析模式：auto（默认，定时跑完整 S1-S8 + 每日精选）/ on-demand（定时只跑到
+  /// S4 相关性就停，S5 质量/S6 实体/S7 洞察与每日精选都不自动跑，改由用户在浏览时
+  /// 勾选一批 item 手动触发分析）。YouTube 大咖类主题用后者：字幕天天采，分析按需做。
+  analysisMode String           @default("auto") @map("analysis_mode") @db.VarChar(20)
 
   status    RadarTopicStatus @default(ACTIVE)
   /// 调度器扫描字段：下次应运行时间
@@ -10788,6 +10792,12 @@ model RadarInsight {
   topic       RadarTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
   /// 关联到 RadarRun
   runId       String?    @map("run_id") @db.VarChar(40)
+  /// scheduled = 定时 refresh mission 的 S7 产出（周期维度）
+  /// ad-hoc    = 用户在 feed 里勾选一批 item 手动触发的分析（选集维度）
+  kind        String     @default("scheduled") @db.VarChar(20)
+  /// 仅 ad-hoc：本次分析选中的 RadarItem id 列表（string[]）。
+  /// scheduled 为 null——它的范围由 periodFrom/periodTo 界定。
+  itemIds     Json?      @map("item_ids")
   periodFrom  DateTime   @map("period_from")
   periodTo    DateTime   @map("period_to")
   summary     String     @db.Text
@@ -10800,6 +10810,7 @@ model RadarInsight {
   createdAt   DateTime   @default(now()) @map("created_at")
 
   @@index([topicId, periodTo(sort: Desc)])
+  @@index([topicId, kind, createdAt(sort: Desc)])
   @@map("radar_insights")
 }
 

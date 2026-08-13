@@ -9,10 +9,12 @@ import { config } from '@/lib/utils/config';
 import { getAuthHeader } from '@/lib/utils/auth';
 import { apiError } from '@/lib/utils/api-error';
 import type {
+  AdHocInsightResult,
   CancelRunResponse,
   CreateRadarSourceInput,
   CreateRadarTopicInput,
   RadarInsight,
+  RadarInsightKind,
   RadarItem,
   RadarRun,
   RadarSource,
@@ -400,6 +402,8 @@ export async function listFeed(
     since?: string;
     minRelevance?: number;
     acceptedOnly?: boolean;
+    /** 关键词：匹配标题 / 作者（后端不搜字幕正文，见 DTO 注释） */
+    q?: string;
     limit?: number;
     cursor?: string;
   } = {}
@@ -410,6 +414,7 @@ export async function listFeed(
   if (opts.minRelevance != null)
     qs.set('minRelevance', String(opts.minRelevance));
   if (opts.acceptedOnly) qs.set('acceptedOnly', 'true');
+  if (opts.q?.trim()) qs.set('q', opts.q.trim());
   if (opts.limit) qs.set('limit', String(opts.limit));
   if (opts.cursor) qs.set('cursor', opts.cursor);
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
@@ -422,10 +427,30 @@ export async function listFeed(
 
 export async function listInsights(
   topicId: string,
-  limit?: number
+  limit?: number,
+  kind?: RadarInsightKind
 ): Promise<RadarInsight[]> {
-  const qs = limit ? `?limit=${limit}` : '';
-  return request<RadarInsight[]>(`/topics/${topicId}/insights${qs}`);
+  const qs = new URLSearchParams();
+  if (limit) qs.set('limit', String(limit));
+  if (kind) qs.set('kind', kind);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return request<RadarInsight[]>(`/topics/${topicId}/insights${suffix}`);
+}
+
+/**
+ * 按需分析：把用户在 feed 里勾选的一批内容交给信号分析师，同步返回结果。
+ *
+ * 与定时洞察共用同一套合成逻辑与证据门禁；产物是 kind='ad-hoc' 的 RadarInsight，
+ * 之后能在「历次分析」里回看。
+ */
+export async function analyzeItems(
+  topicId: string,
+  itemIds: string[]
+): Promise<AdHocInsightResult> {
+  return request<AdHocInsightResult>(`/topics/${topicId}/insights/analyze`, {
+    method: 'POST',
+    body: JSON.stringify({ itemIds }),
+  });
 }
 
 export async function getLatestInsight(

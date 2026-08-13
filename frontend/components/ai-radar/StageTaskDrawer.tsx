@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { useTranslation } from '@/lib/i18n';
 import { SideDrawer } from '@/components/common/drawers/SideDrawer';
 import { StatCard } from '@/components/ui/cards';
 import type { RadarDroppedItem, RadarRun } from '@/services/ai-radar/types';
@@ -68,6 +69,7 @@ export function StageTaskDrawer({
   events,
   onClose,
 }: Props) {
+  const { t } = useTranslation();
   const state: StageState | null = useMemo(
     () => (stage ? stageGroupStatus(run, stage, currentStage) : null),
     [stage, run, currentStage]
@@ -124,6 +126,9 @@ export function StageTaskDrawer({
   // 该 stage 在 mission 的相关 sourceErrors（仅 collect / dedupe / 类似阶段相关）
   const sourceErrors =
     stage.id === 'collect' ? (run.metrics?.sourceErrors ?? []) : [];
+  // 调通但零产出的源：没有 error、health 也是绿的，不单独列出来就等于不存在
+  const emptySources =
+    stage.id === 'collect' ? (run.metrics?.emptySources ?? []) : [];
 
   return (
     <SideDrawer open onClose={onClose} title="Stage 任务详情" widthPx={560}>
@@ -360,6 +365,36 @@ export function StageTaskDrawer({
               {sourceErrors.length > 20 && (
                 <li className="text-xs text-amber-600">
                   …还有 {sourceErrors.length - 20} 个，请查看后端日志
+                </li>
+              )}
+            </ul>
+          </section>
+        )}
+
+        {/* 调通但零产出（collect stage 特有）—— 与「源级错误」区分：这些源没报错 */}
+        {emptySources.length > 0 && (
+          <section className="rounded-md border border-sky-200 bg-sky-50 p-3">
+            <h4 className="mb-1.5 text-xs font-semibold text-sky-800">
+              {t('radar.stageDrawer.emptySources.title', {
+                count: emptySources.length,
+              })}
+            </h4>
+            <p className="mb-1.5 text-xs text-sky-700">
+              {t('radar.stageDrawer.emptySources.hint')}
+            </p>
+            <ul className="flex flex-col gap-1">
+              {emptySources.slice(0, 20).map((s, i) => (
+                <li key={`${s.sourceId}-${i}`} className="text-xs text-sky-700">
+                  <span className="font-mono">{s.type}</span>
+                  {' — '}
+                  {s.label}
+                </li>
+              ))}
+              {emptySources.length > 20 && (
+                <li className="text-xs text-sky-600">
+                  {t('radar.stageDrawer.emptySources.more', {
+                    count: emptySources.length - 20,
+                  })}
                 </li>
               )}
             </ul>

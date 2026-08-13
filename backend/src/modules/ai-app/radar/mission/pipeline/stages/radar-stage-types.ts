@@ -152,6 +152,21 @@ export interface RadarRunMetrics {
   itemsAccepted: number;
   insightCreated: boolean;
   sourceErrors: Array<{ sourceId: string; error: string }>;
+  /** S2 写入：因上游限流跳过的源数（不计入 sourcesFailed，也不烧 source health） */
+  sourcesThrottled?: number;
+  /**
+   * S2 写入：本次「调通了但一条没抓到」的源。
+   *
+   * 这类源 markSuccess、health 绿、无 error——最难发现的一种坏法（HF 榜单被
+   * publishedAt 窗口筛空整整两个月就是这么过去的）。单次为 0 未必是故障（低频源
+   * 本来就可能没更新），所以只呈现不判罪，由人看趋势。
+   */
+  emptySources?: Array<{ sourceId: string; label: string; type: string }>;
+  /**
+   * 因 topic.analysisMode='on-demand' 而被跳过的 stage id。
+   * 没有它，mission 视图里 S5/S6/S7 会显示成「跑完了」——和真的跑完无法区分。
+   */
+  skippedStages?: string[];
   /** R10：S8 写入，scoring/quality 阈值快照（让 UI 能告知用户门槛是多少） */
   thresholds?: {
     relevanceGate: number;
@@ -185,4 +200,20 @@ export interface RadarStageHookArgs {
  */
 export interface RadarStageRunner {
   run(args: RadarStageHookArgs, ctx: RadarMissionContext): Promise<void>;
+}
+
+/**
+ * 记录某个 stage 因 analysisMode='on-demand' 被跳过。
+ *
+ * 幂等（同一 stage 重跑不会重复记），metrics 最终由 dispatcher 落到
+ * RadarRun.metrics，前端据此把该 step 标成「按设置跳过」而不是「已完成」。
+ */
+export function recordSkippedStage(
+  ctx: RadarMissionContext,
+  stageId: string,
+): void {
+  const current = ctx.state.metrics.skippedStages ?? [];
+  if (!current.includes(stageId)) {
+    ctx.state.metrics.skippedStages = [...current, stageId];
+  }
 }

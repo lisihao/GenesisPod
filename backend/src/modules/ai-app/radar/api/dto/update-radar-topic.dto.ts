@@ -20,6 +20,8 @@ const CRON_REGEX = new RegExp(
   "^[\\d*/,-]+\\s+[\\d*/,-]+\\s+[\\d*/,-]+\\s+[\\d*/,-]+\\s+[\\d*/,-]+$",
 );
 
+const ANALYSIS_MODE_VALUES = ["auto", "on-demand"] as const;
+
 const BRIEFING_TIME_VALUES = ["08:00", "12:00", "18:00", "21:00"] as const;
 const OUTPUT_LANGUAGE_VALUES = ["zh-CN", "en-US"] as const;
 const SIGNAL_TYPE_VALUES = [
@@ -45,6 +47,14 @@ export class UpdateRadarTopicDto {
   @IsOptional()
   @IsEnum(RadarEntityType)
   entityType?: RadarEntityType;
+
+  /**
+   * 分析模式：auto（定时跑完整分析 + 每日精选）| on-demand（定时只采集到 S4
+   * 相关性，分析由用户勾选内容手动触发）。YouTube 大咖类主题用 on-demand。
+   */
+  @IsOptional()
+  @IsIn(ANALYSIS_MODE_VALUES)
+  analysisMode?: (typeof ANALYSIS_MODE_VALUES)[number];
 
   @IsOptional()
   @IsArray()

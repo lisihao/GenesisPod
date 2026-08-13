@@ -18,6 +18,7 @@ import {
   RADAR_LITERAL_MISS_REASON,
   RADAR_PIPELINE_DEFAULTS,
 } from "../../../runtime/radar.constants";
+import { isOnDemandAnalysis } from "../../../runtime/analysis-mode";
 import { computeNextCronTick } from "../../services/scheduler/cron-util";
 import type {
   RadarDroppedItem,
@@ -66,14 +67,19 @@ export class RadarS8PersistStage implements RadarStageRunner {
     const dropped: RadarDroppedItem[] = [];
     let droppedAtRelevance = 0;
     let droppedAtQuality = 0;
+    // on-demand 主题不跑 S5，qualityScore 恒缺失。若仍套双门槛，accepted 会永远
+    // 是 false —— feed 的 acceptedOnly 过滤和 radar-signal-search（只查 accepted）
+    // 会一起枯竭。这类主题的 accepted 只看相关性。
+    const onDemand = isOnDemandAnalysis(ctx.state.topic);
     const itemUpdates = newItemIds.map((id, idx) => {
       const rel = relevanceScores.get(id);
       const qual = qualityScores.get(id);
-      const accepted =
-        rel !== undefined &&
-        rel.score >= relMin &&
-        qual !== undefined &&
-        qual.score >= qualMin;
+      const accepted = onDemand
+        ? rel !== undefined && rel.score >= relMin
+        : rel !== undefined &&
+          rel.score >= relMin &&
+          qual !== undefined &&
+          qual.score >= qualMin;
       if (accepted) {
         acceptedIds.add(id);
       } else {

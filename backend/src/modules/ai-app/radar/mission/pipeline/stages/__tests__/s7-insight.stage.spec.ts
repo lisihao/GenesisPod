@@ -18,6 +18,7 @@ import { Test } from "@nestjs/testing";
 import { AiChatService } from "@/modules/ai-engine/facade";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { RadarS7InsightStage } from "../s7-insight.stage";
+import { RadarInsightSynthesisService } from "../../../services/insight/radar-insight-synthesis.service";
 import { RADAR_PIPELINE_DEFAULTS } from "../../../../runtime/radar.constants";
 import type {
   RadarMissionContext,
@@ -63,6 +64,9 @@ describe("RadarS7InsightStage", () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         RadarS7InsightStage,
+        // 用真的合成 service（只 mock 掉 LLM）——prompt 构造与证据门禁都是它的
+        // 职责，mock 掉就等于不测了。
+        RadarInsightSynthesisService,
         { provide: AiChatService, useValue: chat },
         { provide: PrismaService, useValue: prisma },
       ],
@@ -183,8 +187,10 @@ describe("RadarS7InsightStage", () => {
     it("查上期 insight 用于对照（findFirst 调用一次）", async () => {
       const ctx = makeCtx();
       await stage.run(args, ctx);
+      // kind:'scheduled' —— 对照基线只看周期洞察，不能把用户手动触发的
+      // ad-hoc 分析当成「上期」（选集维度和周期维度不可比）
       expect(prisma.radarInsight.findFirst).toHaveBeenCalledWith({
-        where: { topicId: "topic-1" },
+        where: { topicId: "topic-1", kind: "scheduled" },
         orderBy: { periodTo: "desc" },
       });
     });
@@ -283,6 +289,34 @@ describe("RadarS7InsightStage", () => {
       expect(ctx.state.insightPayload?.signals).toEqual([
         expect.objectContaining({ kind: "有证据", itemIds: ["A"] }),
       ]);
+    });
+
+    /**
+     * 回归护栏（2026-08-11）：signals 走 allowedItemIds 白名单，highlights 之前完全
+     * 不校验——模型编的 id 能一路进前端，点开是死链。两边现在用同一份白名单。
+     */
+    it("highlights 的 itemIds 同样按真实 item id 过滤", async () => {
+      chat.chat.mockResolvedValueOnce({
+        content: JSON.stringify({
+          summary: "x",
+          highlights: [
+            {
+              title: "混了假 id",
+              itemIds: ["A", "hallucinated"],
+              type: "trend",
+            },
+            { title: "全是假 id", itemIds: ["ghost"], type: "trend" },
+          ],
+          signals: [],
+          topEntities: [],
+        }),
+      });
+      const ctx = makeCtx();
+      await stage.run(args, ctx);
+      const highlights = ctx.state.insightPayload!.highlights;
+      expect(highlights[0].itemIds).toEqual(["A"]);
+      // highlight 本身保留（标题仍有信息量），但假 id 不下发
+      expect(highlights[1].itemIds).toEqual([]);
     });
 
     it("topEntities 空 → 由 entityMap 频率兜底（最多 8 个）", async () => {

@@ -47,7 +47,7 @@ export enum CreatableRadarSourceTypeDto {
 /**
  * 数据源 config（类型特定，自由 JSON，service 内做类型分发校验）：
  *
- * - YOUTUBE : `{ fetchTranscript?: boolean, region?: string }`
+ * - YOUTUBE : `{ fetchTranscript?: boolean, region?: string }`（fetchTranscript 默认 true，传 false 才关）
  * - GITHUB  : `{ language?: string, minStars?: number, sort?: "stars" | "updated" }`
  * - HUGGING_FACE: identifier `models[:query]` or `papers[:query]`
  * - RSS     : 无额外配置（identifier 即 URL）

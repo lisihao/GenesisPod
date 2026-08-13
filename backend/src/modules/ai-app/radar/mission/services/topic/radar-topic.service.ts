@@ -168,6 +168,7 @@ export class RadarTopicService {
     }
     if (dto.matchMode !== undefined) data.matchMode = dto.matchMode;
     if (dto.refreshCron !== undefined) data.refreshCron = dto.refreshCron;
+    if (dto.analysisMode !== undefined) data.analysisMode = dto.analysisMode;
 
     // 2026-05-19 R10：原 update 静默丢 PR-DR2 6 个 briefing 字段，用户改完
     // 「每日精选数量 / 信号类型 / 输出语言 / 推送方式 / 精选时间 / 周末跳过」

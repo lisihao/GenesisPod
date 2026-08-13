@@ -7954,6 +7954,38 @@
         "moreSkipped": "{{count}} more...",
         "doneWithSkipped": "Imported {{created}} sources, skipped {{skipped}}:",
         "done": "Imported {{count}} sources"
+      },
+      "identifierHint": {
+        "github": "trending, owner/repo, or a GitHub repository search query",
+        "huggingFace": "models, papers, models:<query>, or papers:<query>"
+      }
+    },
+    "itemsPanel": {
+      "searchPlaceholder": "Search title or author",
+      "selectedCount": "{{count}} selected",
+      "selectionFull": "Reached the per-run limit of {{max}}",
+      "clearSelection": "Clear",
+      "analyzeSelected": "Analyze selected",
+      "analyzeFailed": "Analysis failed: {{message}}",
+      "resultTitle": "This analysis ({{count}} items)",
+      "selectItem": "Select: {{title}}"
+    },
+    "analysisMode": {
+      "label": "Analysis mode",
+      "auto": {
+        "label": "Automatic (default)",
+        "hint": "After each scheduled collection, run quality scoring, entity extraction and insight synthesis, and produce the daily briefing."
+      },
+      "on-demand": {
+        "label": "Collect only, analyze on demand",
+        "hint": "Scheduled runs only collect content (transcripts for YouTube) and score relevance. No automatic insight, no daily briefing. You trigger analysis by selecting items in the collected-signals panel."
+      }
+    },
+    "stageDrawer": {
+      "emptySources": {
+        "title": "Reached but returned nothing ({{count}} sources)",
+        "hint": "These sources did not fail — they simply returned no items. Occasional zeros are normal for low-frequency sources; repeated zeros mean the collection window or filters are dropping everything.",
+        "more": "…and {{count}} more"
       }
     }
   },

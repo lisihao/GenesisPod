@@ -22,6 +22,7 @@ import { OnEvent } from "@nestjs/event-emitter";
 import { RadarTopicStatus } from "@prisma/client";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { RADAR_SCHEDULER_DEFAULTS } from "../../../runtime/radar.constants";
+import { RADAR_ANALYSIS_MODE } from "../../../runtime/analysis-mode";
 import { RadarPipelineDispatcher } from "../../pipeline/radar-pipeline-dispatcher.service";
 import { RadarBriefingQueueService } from "./radar-briefing-queue.service";
 import { RadarDailyBriefingRepo } from "../briefing/radar-daily-briefing.repo";
@@ -168,7 +169,13 @@ export class RadarRefreshScheduler {
     const now = new Date();
 
     const topics = await this.prisma.radarTopic.findMany({
-      where: { status: RadarTopicStatus.ACTIVE },
+      // on-demand 主题不排每日精选：它们不跑 S5，Stage A 的 quality 分量（权重
+      // 0.25）恒为 0，实测综合分落在 0.53 左右、够不到 0.55 阈值 —— 排进来只会
+      // 每天空跑一次 signal-editor 的 LLM，然后写一条 no_signals。
+      where: {
+        status: RadarTopicStatus.ACTIVE,
+        analysisMode: { not: RADAR_ANALYSIS_MODE.ON_DEMAND },
+      },
       select: {
         id: true,
         userId: true,

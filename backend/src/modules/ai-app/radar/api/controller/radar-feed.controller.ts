@@ -36,6 +36,13 @@ export class RadarFeedController {
       where.relevanceScore = { gte: q.minRelevance };
     }
     if (q.acceptedOnly === "true") where.accepted = true;
+    const keyword = q.q?.trim();
+    if (keyword) {
+      where.OR = [
+        { title: { contains: keyword, mode: "insensitive" } },
+        { author: { contains: keyword, mode: "insensitive" } },
+      ];
+    }
 
     const items = await this.prisma.radarItem.findMany({
       where,
