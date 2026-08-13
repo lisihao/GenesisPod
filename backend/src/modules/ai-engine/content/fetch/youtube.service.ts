@@ -771,9 +771,7 @@ export class YoutubeService {
     const workDir = await mkdtemp(join(tmpdir(), "genesispod-ytdlp-"));
 
     try {
-      const { stdout } = await execFileAsync(
-        binary,
-        [
+      await this.runYtDlp(binary, [
           "--skip-download",
           "--write-subs",
           "--write-auto-subs",
@@ -785,19 +783,11 @@ export class YoutubeService {
           "10",
           "--no-warnings",
           "--no-playlist",
-          "--print",
-          "title=%(title)s",
           "-o",
           join(workDir, "%(id)s.%(ext)s"),
           "--",
           `https://www.youtube.com/watch?v=${videoId}`,
-        ],
-        {
-          encoding: "utf8",
-          timeout: YT_DLP_TIMEOUT_MS,
-          maxBuffer: 1024 * 1024,
-        },
-      );
+        ]);
 
       const files = (await readdir(workDir)).filter((file) =>
         file.endsWith(".json3"),
@@ -813,13 +803,13 @@ export class YoutubeService {
       const raw = await readFile(join(workDir, selectedFile), "utf8");
       const segments = this.parseYtDlpJson3(raw);
       if (segments.length === 0) return null;
-      const titleLine = String(stdout)
-        .split(/\r?\n/)
-        .find((line) => line.startsWith("title="));
 
       return {
         segments,
-        title: titleLine?.slice("title=".length).trim() || null,
+        // `--print title=...` makes yt-dlp implicitly simulate and prevents the
+        // JSON3 subtitle file from being written. Reuse the existing oEmbed
+        // title lookup after a successful transcript instead.
+        title: null,
       };
     } catch (error) {
       this.logger.debug(
@@ -831,6 +821,14 @@ export class YoutubeService {
         this.logger.debug(`Failed to clean yt-dlp temp directory: ${error}`);
       });
     }
+  }
+
+  private async runYtDlp(binary: string, args: string[]): Promise<void> {
+    await execFileAsync(binary, args, {
+      encoding: "utf8",
+      timeout: YT_DLP_TIMEOUT_MS,
+      maxBuffer: 1024 * 1024,
+    });
   }
 
   private parseYtDlpJson3(raw: string): TranscriptSegment[] {

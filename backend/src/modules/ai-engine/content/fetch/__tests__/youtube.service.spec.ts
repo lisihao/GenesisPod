@@ -1,5 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException } from "@nestjs/common";
+import { writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { YoutubeService, TranscriptSegment } from "../youtube.service";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { SystemSettingService } from "@/common/settings/system-setting.service";
@@ -1109,27 +1111,57 @@ describe("YoutubeService", () => {
   // ─── getTranscript – local yt-dlp fallback ────────────────────────────────
 
   describe("getTranscript – local yt-dlp fallback", () => {
-    it("uses the native yt-dlp provider before the slower legacy network fallbacks", async () => {
+    const originalYtDlpPath = process.env.YTDLP_PATH;
+
+    afterEach(() => {
+      if (originalYtDlpPath === undefined) delete process.env.YTDLP_PATH;
+      else process.env.YTDLP_PATH = originalYtDlpPath;
+    });
+
+    it("writes and parses JSON3 without the simulate-only --print option", async () => {
+      process.env.YTDLP_PATH = "/opt/homebrew/bin/yt-dlp";
       const ytDlpProvider = service as unknown as {
-        fetchTranscriptYtDlp: jest.Mock;
+        runYtDlp: (
+          binary: string,
+          args: string[],
+        ) => Promise<unknown>;
       };
       const ytDlpSpy = jest
-        .spyOn(ytDlpProvider, "fetchTranscriptYtDlp")
-        .mockResolvedValue({
-          segments: [
-            { text: "First sentence", start: 0, duration: 1.5 },
-            { text: "Second sentence", start: 1.5, duration: 2 },
-          ],
-          title: "Local yt-dlp video",
+        .spyOn(ytDlpProvider, "runYtDlp")
+        .mockImplementation(async (_binary, args) => {
+          expect(args).not.toContain("--print");
+          const outputTemplate = args[args.indexOf("-o") + 1];
+          await writeFile(
+            join(dirname(outputTemplate), "ytDlp000001.en.json3"),
+            JSON.stringify({
+              events: [
+                {
+                  tStartMs: 0,
+                  dDurationMs: 1500,
+                  segs: [{ utf8: "First sentence" }],
+                },
+                {
+                  tStartMs: 1500,
+                  dDurationMs: 2000,
+                  segs: [{ utf8: "Second sentence" }],
+                },
+              ],
+            }),
+            "utf8",
+          );
         });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ title: "Local yt-dlp video" }),
+      });
       mockPrismaService.youTubeTranscriptCache.upsert.mockResolvedValue({});
 
       const result = await service.getTranscript("ytDlp000001", "en");
 
-      expect(ytDlpSpy).toHaveBeenCalledWith("ytDlp000001", "en");
+      expect(ytDlpSpy).toHaveBeenCalledTimes(1);
       expect(result.title).toBe("Local yt-dlp video");
       expect(result.transcript).toHaveLength(2);
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 
