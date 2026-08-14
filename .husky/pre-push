@@ -6,11 +6,12 @@ export CI=true
 export NODE_ENV=test
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
+GOVERNANCE_PLAN=$(git rev-parse --path-format=absolute --git-path governance-plan.json)
 python3 "$PROJECT_ROOT/tools/agent-development-governance/governance.py" \
   audit --project "$PROJECT_ROOT" --strict-warnings
 python3 "$PROJECT_ROOT/tools/agent-development-governance/governance.py" \
   plan --project "$PROJECT_ROOT" --scope auto --level full --json \
-  > "$PROJECT_ROOT/.git/governance-plan.json"
+  > "$GOVERNANCE_PLAN"
 
 echo ""
 echo "============================================================"

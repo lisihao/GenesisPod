@@ -2,7 +2,7 @@
   "bundle_version": 1,
   "governance_version": "0.3.0",
   "source_repository": "agent-development-governance",
-  "source_commit": "67f6522bb1ea1fb3e25da97f4d6f0c12717ba778",
+  "source_commit": "f2a0f2ae6498da54e3ac99b13525cb0a6d8b4be2",
   "files": {
     ".agent-governance/profile.json": "f4242bda39cf9b73b6589fe24b2d5582bbe73f6bd1330b49a5b9e3de752e292f",
     "tools/agent-development-governance/check_changed_format.py": "09b21ca31496ebbda894a8600f53faac74f97ab32ef8c34fb80d5f96673b42a3",
