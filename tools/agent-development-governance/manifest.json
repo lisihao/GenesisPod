@@ -1,0 +1,12 @@
+{
+  "bundle_version": 1,
+  "governance_version": "0.3.0",
+  "source_repository": "agent-development-governance",
+  "source_commit": "ad2ca6cd6e26731e60ef3c7fc28b4b011288caf1",
+  "files": {
+    ".agent-governance/profile.json": "f4242bda39cf9b73b6589fe24b2d5582bbe73f6bd1330b49a5b9e3de752e292f",
+    "tools/agent-development-governance/check_changed_format.py": "5ae99674cef7c35f8c9570de8546a7af1dfaec43c17ecb3d222c0a7bebf285ab",
+    "tools/agent-development-governance/check_changed_text.py": "b2f91be1847a18e32aa38451b5cea0f0a1187a092249329e860ddd8b1f59bd4c",
+    "tools/agent-development-governance/governance.py": "8330ca53319d02502e7c44eab85c7ca473458115badd8a92a14dfb1ae27acb9c"
+  }
+}

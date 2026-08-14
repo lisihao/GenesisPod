@@ -3,18 +3,8 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - ".vscode/**"
-      - ".claude/**"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - ".vscode/**"
-      - ".claude/**"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -26,6 +16,35 @@ env:
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/genesis_test
 
 jobs:
+  # ── Governance Contract ───────────────────────────────────
+  # Code-as-harness entry gate. This job validates the versioned bundle,
+  # project Profile, executable Git hooks, package entrypoints, and CI wiring.
+  # Heavy product gates remain parallel jobs below and converge in ci-status.
+  governance-contract:
+    name: Governance Harness Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Audit governance bundle and wiring
+        run: >-
+          python3 tools/agent-development-governance/governance.py audit
+          --project . --strict-warnings
+
+      - name: Materialize full gate contract
+        run: >-
+          python3 tools/agent-development-governance/governance.py plan
+          --project . --scope full --level full --json
+          > governance-plan.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: governance-plan
+          path: governance-plan.json
+
   # ── Lint & Type Check ─────────────────────────────────────
   lint:
     name: Lint & Type Check
@@ -397,6 +416,7 @@ jobs:
     if: always()
     needs:
       [
+        governance-contract,
         lint,
         test-backend,
         test-frontend,
@@ -411,6 +431,7 @@ jobs:
       - name: Check results
         run: |
           echo "Lint:           ${{ needs.lint.result }}"
+          echo "Governance:     ${{ needs.governance-contract.result }}"
           echo "Test Backend:   ${{ needs.test-backend.result }}"
           echo "Test Frontend:  ${{ needs.test-frontend.result }}"
           echo "Build:          ${{ needs.build.result }}"
@@ -420,7 +441,8 @@ jobs:
           echo "Boot Smoke:     ${{ needs.boot-smoke.result }}"
           echo "Capability Idx: ${{ needs.capability-index.result }}"
 
-          if [ "${{ needs.lint.result }}" != "success" ] || \
+          if [ "${{ needs.governance-contract.result }}" != "success" ] || \
+             [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.test-backend.result }}" != "success" ] || \
              [ "${{ needs.test-frontend.result }}" != "success" ] || \
              [ "${{ needs.build.result }}" != "success" ] || \

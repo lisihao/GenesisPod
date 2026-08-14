@@ -5,6 +5,13 @@
 export CI=true
 export NODE_ENV=test
 
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+python3 "$PROJECT_ROOT/tools/agent-development-governance/governance.py" \
+  audit --project "$PROJECT_ROOT" --strict-warnings
+python3 "$PROJECT_ROOT/tools/agent-development-governance/governance.py" \
+  plan --project "$PROJECT_ROOT" --scope auto --level full --json \
+  > "$PROJECT_ROOT/.git/governance-plan.json"
+
 echo ""
 echo "============================================================"
 echo "  Pre-push 验证（类型 + 变更测试 + UI 一致性 + i18n + runtime deps）"

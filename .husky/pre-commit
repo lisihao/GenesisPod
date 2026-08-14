@@ -5,4 +5,8 @@
 # 8GB 实测可覆盖全仓最大单次 staged 提交。允许外部覆盖（已设更大值则保留）。
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
 
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+python3 "$PROJECT_ROOT/tools/agent-development-governance/governance.py" \
+  audit --project "$PROJECT_ROOT" --strict-warnings
+
 npx lint-staged --concurrent false --max-arg-length 30000

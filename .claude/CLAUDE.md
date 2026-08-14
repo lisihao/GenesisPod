@@ -90,7 +90,7 @@ L1 Infrastructure → modules/platform/（层概念名 ai-infra，真实目录 p
 
 > **依赖方向**：L4 → L3 → L2.5 → L2 → L1，严格单向。AI Harness 编排 AI Engine 基元，不反向依赖 ai-app。
 >
-> **三层看护机制（2026-05-01 PR-X-N，9.8/10 架构合规度锁定）**：
+> **四层看护机制（2026-08-14 Code Harness 接入后）**：
 >
 > 1. **ESLint `no-restricted-imports`**（IDE 实时反馈 + lint-staged pre-commit 拦截）
 >    - `ai-engine/**` 不得 import `ai-harness/**`（除合法 adapter 如 `engine-skill-provider.ts` 实现 `ISkillProvider` 端口）
@@ -103,7 +103,13 @@ L1 Infrastructure → modules/platform/（层概念名 ai-infra，真实目录 p
 >    - `.husky/pre-push` 第 0 步先跑 `verify:arch`，违规直接拒推
 >    - 类型检查 / 构建 / 变更测试在后续步骤
 >    - CI：`verify:arch` 已在 GitHub Actions 的 `arch-boundary` job 执行，结果汇入 `ci-status` 合并门（失败即拒绝合并）
->    - **覆盖率阈值（已知项，待接入 CI）**：`jest.config` 对 3 个核心模块配置了 85% 覆盖率门槛，但目前仅本地跑 `test:coverage` 时触发；CI 的 `test:quick` 不带 `--coverage`，故覆盖率阈值当前未在 CI 强制（待后续确认现状后接入）
+>    - **覆盖率阈值**：CI backend `test:ci` 与 frontend `test:ci -- --coverage` 已强制生成覆盖率并应用各自阈值。
+> 4. **Code Harness 治理契约**（机器判定适用规则和完整门禁）
+>    - Profile：`.agent-governance/profile.json`
+>    - 仓内可移植运行时：`tools/agent-development-governance/`（manifest + SHA-256 漂移检查）
+>    - 本地：`npm run governance:audit` / `npm run governance:quick` / `npm run governance:verify`
+>    - CI：`governance-contract` job 校验 bundle、Hook 执行位、命令入口和 CI 接线，并汇入 `ci-status`
+>    - 禁止通过修改 baseline、allowlist、skip 开关或弱化测试换取通过；任一 required gate 未运行不得报告 `ok`
 >
 > **历史包袱**：`modules/ai-kernel/`（已删，PR 7）+ `modules/ai-engine/runtime/`（已迁出，PR-X4~X10）—— 早期分层尝试，所有 Agent 运行时能力现在都集中在 `modules/ai-harness/` 这一层。
 >
