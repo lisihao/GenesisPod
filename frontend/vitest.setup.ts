@@ -3,6 +3,38 @@ import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 import zhTranslations from './lib/i18n/locales/zh.json';
 
+// Node 26 exposes a process-level `localStorage` getter that returns undefined
+// unless --localstorage-file is configured. In Vitest's CI `forks` pool that
+// shadows jsdom storage before persisted Zustand stores are imported. Install
+// a deterministic browser-compatible implementation during setup so full and
+// --changed runs have the same contract. Keep it configurable for tests that
+// install their own spies.
+function createMemoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => Array.from(values.keys())[index] ?? null,
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, String(value)),
+  };
+}
+
+const testStorage = createMemoryStorage();
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: testStorage,
+});
+if (window !== globalThis) {
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: testStorage,
+  });
+}
+
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
