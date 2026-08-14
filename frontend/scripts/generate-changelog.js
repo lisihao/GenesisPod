@@ -131,6 +131,17 @@ for (const msg of newCommits) {
   if (type === 'fix') hasFix = true;
 }
 
+// CHANGELOG.md is intentionally not tracked. Fresh clones and CI runners do
+// not have it, so there is nowhere safe to persist an auto-generated release
+// entry. Exit before mutating package versions and keep the committed
+// changelog.json as the build-time source of truth.
+if (!fs.existsSync(changelogPath)) {
+  console.log(
+    `No CHANGELOG.md at ${changelogPath} — keeping package versions and changelog.json untouched.`
+  );
+  process.exit(0);
+}
+
 // ── Step 4: Bump version if needed ─────────────────────────────────────────
 let newVersion = currentVersion;
 
