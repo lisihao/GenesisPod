@@ -6,12 +6,17 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
+import { lookup } from "node:dns/promises";
 import {
   ContentFetchService,
   YOUTUBE_SERVICE_TOKEN,
 } from "../content-fetch.service";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { WebContentExtractionService } from "@/common/content-processing/web-content-extraction.service";
+
+jest.mock("node:dns/promises", () => ({ lookup: jest.fn() }));
+
+const mockLookup = lookup as unknown as jest.Mock;
 
 describe("ContentFetchService", () => {
   let service: ContentFetchService;
@@ -20,6 +25,10 @@ describe("ContentFetchService", () => {
   let mockYoutubeService: { getTranscript: jest.Mock };
 
   beforeEach(async () => {
+    // Unit tests must not depend on the host network. Public URLs resolve to a
+    // stable public address; dedicated SSRF tests cover blocked/failing DNS.
+    mockLookup.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+
     mockPrisma = {
       youTubeTranscriptCache: {
         findUnique: jest.fn().mockResolvedValue(null),
